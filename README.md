@@ -111,7 +111,7 @@ The app uses the **htdemucs_ft** model with **`--shifts=2`** and **`--two-stems=
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/mahmoudelsheikh7/m4s_YD-VO.git
+git clone https://github.com/mahmoudelsheikh7/M4S_D.git
 cd m4s-ydvo
 
 # 2. Make the installer executable
