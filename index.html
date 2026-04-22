@@ -516,11 +516,11 @@
   .step-title { font-weight: 700; margin-bottom: 6px; font-size: 15px; }
   .step-desc { color: var(--text2); font-size: 14px; margin-bottom: 6px; }
 
-  /* ─────────────── DONATE ─────────────── */
-  .donate-section {
+  /* ─────────────── Support ─────────────── */
+  .Support-section {
     padding: 80px 0;
   }
-  .donate-card {
+  .Support-card {
     max-width: 620px;
     margin: 0 auto;
     background: linear-gradient(135deg,
@@ -539,14 +539,14 @@
       inset 0 1px 0 rgba(255,255,255,0.05);
     transition: box-shadow 0.3s, transform 0.2s;
   }
-  .donate-card:hover {
+  .Support-card:hover {
     box-shadow:
       0 0 80px rgba(245,158,11,0.12),
       0 0 160px rgba(245,158,11,0.05),
       inset 0 1px 0 rgba(255,255,255,0.07);
     transform: translateY(-2px);
   }
-  .donate-card::before {
+  .Support-card::before {
     content: '';
     position: absolute;
     top: -40%;
@@ -556,12 +556,12 @@
     background: radial-gradient(ellipse, rgba(245,158,11,0.05), transparent 70%);
     pointer-events: none;
   }
-  .donate-icon { font-size: 42px; margin-bottom: 16px; display: block; animation: pulse 2s infinite; }
+  .Support-icon { font-size: 42px; margin-bottom: 16px; display: block; animation: pulse 2s infinite; }
   @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.06); }
   }
-  .donate-title {
+  .Support-title {
     font-size: 26px;
     font-weight: 700;
     margin-bottom: 10px;
@@ -569,14 +569,14 @@
     text-shadow: 0 0 20px rgba(245,158,11,0.4);
     letter-spacing: -0.5px;
   }
-  .donate-sub {
+  .Support-sub {
     color: var(--text2);
     font-size: 15px;
     max-width: 380px;
     margin: 0 auto 28px;
     line-height: 1.6;
   }
-  .donate-badge {
+  .Support-badge {
     display: inline-block;
     background: rgba(245,158,11,0.1);
     border: 1px solid rgba(245,158,11,0.35);
@@ -588,7 +588,7 @@
     margin-bottom: 20px;
     letter-spacing: 1px;
   }
-  .donate-addr-wrap {
+  .Support-addr-wrap {
     background: rgba(0,0,0,0.5);
     border: 1px solid rgba(245,158,11,0.2);
     border-radius: 12px;
@@ -600,8 +600,8 @@
     text-align: left;
     transition: border-color 0.2s;
   }
-  .donate-addr-wrap:hover { border-color: rgba(245,158,11,0.4); }
-  .donate-addr-label {
+  .Support-addr-wrap:hover { border-color: rgba(245,158,11,0.4); }
+  .Support-addr-label {
     font-family: var(--mono);
     font-size: 10px;
     color: var(--text3);
@@ -609,7 +609,7 @@
     letter-spacing: 2px;
     margin-bottom: 5px;
   }
-  .donate-addr {
+  .Support-addr {
     font-family: var(--mono);
     font-size: 13px;
     color: var(--neon3);
@@ -617,7 +617,7 @@
     flex: 1;
     letter-spacing: 0.5px;
   }
-  .donate-copy-btn {
+  .Support-copy-btn {
     background: rgba(245,158,11,0.1);
     border: 1px solid rgba(245,158,11,0.3);
     color: var(--neon3);
@@ -630,16 +630,16 @@
     transition: all 0.2s;
     flex-shrink: 0;
   }
-  .donate-copy-btn:hover {
+  .Support-copy-btn:hover {
     background: rgba(245,158,11,0.2);
     box-shadow: 0 0 16px rgba(245,158,11,0.2);
   }
-  .donate-copy-btn.copied {
+  .Support-copy-btn.copied {
     background: rgba(52,211,153,0.15);
     border-color: rgba(52,211,153,0.4);
     color: var(--neon2);
   }
-  .donate-warning {
+  .Support-warning {
     font-size: 12px;
     color: var(--text3);
     display: flex;
@@ -648,7 +648,7 @@
     gap: 6px;
     margin-top: 6px;
   }
-  .donate-warning::before {
+  .Support-warning::before {
     content: '⚠';
     color: var(--neon3);
     font-size: 13px;
@@ -687,9 +687,9 @@
     .stat-item:nth-child(2) { border-right: none; }
     .formats-grid { grid-template-columns: 1fr; }
     .install-panel { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
-    .donate-card { padding: 28px 20px; }
-    .donate-addr-wrap { flex-direction: column; align-items: stretch; }
-    .donate-copy-btn { width: 100%; text-align: center; }
+    .Support-card { padding: 28px 20px; }
+    .Support-addr-wrap { flex-direction: column; align-items: stretch; }
+    .Support-copy-btn { width: 100%; text-align: center; }
     nav a:not(.nav-cta):not(.nav-logo) { display: none; }
     .hero-ascii { display: none; }
   }
@@ -705,7 +705,7 @@
     <a href="#features">Features</a>
     <a href="#formats">Formats</a>
     <a href="#install">Install</a>
-    <a href="#donate">Donate</a>
+    <a href="#Support">Support</a>
     <a class="nav-cta" href="https://github.com/mahmoudelsheikh7/M4S_D" target="_blank">★ GitHub</a>
   </div>
 </nav>
@@ -1051,30 +1051,30 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ DONATE ═══════════════════════════ -->
-<section class="donate-section" id="donate">
+<!-- ═══════════════════════════ Support ═══════════════════════════ -->
+<section class="Support-section" id="Support">
   <div class="container">
     <div class="reveal">
       <div class="section-tag" style="text-align:center;color:var(--neon3);margin-bottom:32px;">// Support</div>
     </div>
-    <div class="donate-card reveal">
-      <span class="donate-icon">💛</span>
-      <div class="donate-title">Support m4s d</div>
-      <p class="donate-sub">
+    <div class="Support-card reveal">
+      <span class="Support-icon">💛</span>
+      <div class="Support-title">Support m4s d</div>
+      <p class="Support-sub">
         m4s d is free and open source. If it saves you time or you find it useful,
         a crypto donation keeps the project alive and motivates future features.
       </p>
-      <div class="donate-badge">USDT · TRC20 · TRON Network</div>
-      <div class="donate-addr-wrap">
+      <div class="Support-badge">USDT · TRC20 · TRON Network</div>
+      <div class="Support-addr-wrap">
         <div style="flex:1">
-          <div class="donate-addr-label">Wallet Address</div>
-          <div class="donate-addr" id="donate-addr">TLTRj89qEp1oPcEQjAsqiDWutd1ezd4W4y</div>
+          <div class="Support-addr-label">Wallet Address</div>
+          <div class="Support-addr" id="Support-addr">TLTRj89qEp1oPcEQjAsqiDWutd1ezd4W4y</div>
         </div>
-        <button class="donate-copy-btn" id="donate-copy-btn" onclick="copyDonateAddr()">
+        <button class="Support-copy-btn" id="Support-copy-btn" onclick="copySupportAddr()">
           📋 Copy
         </button>
       </div>
-      <div class="donate-warning">
+      <div class="Support-warning">
         Only send USDT on TRC20 (TRON) network. Always verify the address.
       </div>
     </div>
@@ -1121,10 +1121,10 @@
     });
   }
 
-  // ── Copy donate address ──
-  function copyDonateAddr() {
-    const addr = document.getElementById('donate-addr').textContent.trim();
-    const btn  = document.getElementById('donate-copy-btn');
+  // ── Copy Support address ──
+  function copySupportAddr() {
+    const addr = document.getElementById('Support-addr').textContent.trim();
+    const btn  = document.getElementById('Support-copy-btn');
     navigator.clipboard.writeText(addr).then(() => {
       btn.textContent = '✓ Copied!';
       btn.classList.add('copied');
