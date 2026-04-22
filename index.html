@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>m4s d — Universal Downloader & Vocal Extractor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root {
+  --bg-void:    #060b14;
+  --bg-deep:    #0a1020;
+  --bg-card:    rgba(14, 22, 40, 0.75);
+  --bg-glass:   rgba(255,255,255,0.04);
+  --border:     rgba(100, 180, 255, 0.12);
+  --border-glow:rgba(80, 160, 255, 0.35);
+
+  --neon-blue:  #3b9eff;
+  --neon-cyan:  #00d4ff;
+  --neon-purple:#a855f7;
+  --neon-green: #00ff88;
+  --neon-pink:  #f72585;
+
+  --text-primary:   #e8f0fe;
+  --text-secondary: #7a9cc4;
+  --text-muted:     #3d5a7a;
+
+  --font-display: 'Orbitron', monospace;
+  --font-body:    'Syne', sans-serif;
+  --font-code:    'JetBrains Mono', monospace;
+
+  --glow-blue:  0 0 20px rgba(59,158,255,0.4), 0 0 60px rgba(59,158,255,0.15);
+  --glow-green: 0 0 20px rgba(0,255,136,0.4), 0 0 60px rgba(0,255,136,0.15);
+  --glow-purple:0 0 20px rgba(168,85,247,0.4), 0 0 60px rgba(168,85,247,0.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ── CANVAS BACKGROUND ─────────────────────────────── */
+#bg-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── NOISE OVERLAY ─────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.6;
+}
+
+/* ── LAYOUT WRAPPER ────────────────────────────────── */
+.page-wrap { position: relative; z-index: 2; }
+
+/* ── NAV ───────────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(1.5rem, 5vw, 4rem);
+  height: 68px;
+  background: rgba(6, 11, 20, 0.82);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--neon-blue);
+  text-shadow: var(--glow-blue);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+.nav-links a {
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--neon-cyan); }
+
+.nav-github {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: var(--neon-green) !important;
+  border: 1px solid rgba(0,255,136,0.3);
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s !important;
+}
+.nav-github:hover {
+  background: rgba(0,255,136,0.08) !important;
+  box-shadow: var(--glow-green) !important;
+}
+
+/* ── HERO ──────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 1.5rem 4rem;
+  position: relative;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0,212,255,0.3);
+  padding: 0.35rem 1rem;
+  border-radius: 100px;
+  margin-bottom: 2rem;
+  background: rgba(0,212,255,0.05);
+  animation: fadeInDown 0.8s ease both;
+}
+.hero-badge i { font-size: 0.65rem; }
+
+.hero-ascii {
+  font-family: var(--font-code);
+  font-size: clamp(0.35rem, 1.2vw, 0.7rem);
+  line-height: 1.2;
+  color: var(--neon-blue);
+  text-shadow: var(--glow-blue);
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.05em;
+  white-space: pre;
+  animation: fadeInDown 0.8s 0.1s ease both;
+  opacity: 0;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 10vw, 7rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+  animation: fadeInDown 0.8s 0.2s ease both;
+  opacity: 0;
+}
+
+.hero-title span:nth-child(1) {
+  background: linear-gradient(135deg, #3b9eff 0%, #00d4ff 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 30px rgba(59,158,255,0.5));
+}
+
+.hero-subtitle {
+  font-family: var(--font-code);
+  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+  animation: fadeInDown 0.8s 0.3s ease both;
+  opacity: 0;
+}
+
+.hero-tagline {
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 3rem;
+  animation: fadeInDown 0.8s 0.4s ease both;
+  opacity: 0;
+}
+
+.hero-cta-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  animation: fadeInDown 0.8s 0.5s ease both;
+  opacity: 0;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 2.2rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: linear-gradient(135deg, #3b9eff, #a855f7);
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 30px rgba(59,158,255,0.35), 0 0 60px rgba(168,85,247,0.2);
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(59,158,255,0.5), 0 0 80px rgba(168,85,247,0.3); }
+.btn-primary:hover::before { opacity: 1; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 2.2rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--neon-green);
+  background: transparent;
+  border: 1px solid rgba(0,255,136,0.4);
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: rgba(0,255,136,0.08);
+  box-shadow: var(--glow-green);
+  transform: translateY(-2px);
+}
+
+.hero-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 3.5rem;
+  animation: fadeInDown 0.8s 0.6s ease both;
+  opacity: 0;
+}
+
+.badge-chip {
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid;
+  letter-spacing: 0.06em;
+}
+.badge-chip.blue   { color: var(--neon-blue);   border-color: rgba(59,158,255,0.3);  background: rgba(59,158,255,0.07); }
+.badge-chip.green  { color: var(--neon-green);  border-color: rgba(0,255,136,0.3);   background: rgba(0,255,136,0.07); }
+.badge-chip.purple { color: var(--neon-purple); border-color: rgba(168,85,247,0.3);  background: rgba(168,85,247,0.07); }
+.badge-chip.cyan   { color: var(--neon-cyan);   border-color: rgba(0,212,255,0.3);   background: rgba(0,212,255,0.07); }
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  animation: bounce 2s infinite;
+}
+.scroll-indicator i { font-size: 0.9rem; }
+
+/* ── SECTIONS ──────────────────────────────────────── */
+section { padding: clamp(4rem, 8vw, 7rem) clamp(1.5rem, 5vw, 4rem); }
+
+.section-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.section-label {
+  display: inline-block;
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--neon-cyan);
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.section-desc {
+  color: var(--text-secondary);
+  max-width: 520px;
+  margin: 0 auto;
+  font-size: 0.97rem;
+}
+
+/* ── DIVIDER ───────────────────────────────────────── */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-glow), transparent);
+  margin: 0;
+}
+
+/* ── FEATURES GRID ─────────────────────────────────── */
+#features { background: var(--bg-deep); }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.8rem;
+  backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  cursor: default;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(59,158,255,0.06), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover {
+  border-color: var(--border-glow);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,158,255,0.1);
+}
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  display: block;
+  line-height: 1;
+}
+
+.feature-title {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--neon-blue);
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+}
+
+.feature-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.feature-tag {
+  display: inline-block;
+  margin-top: 1rem;
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  color: var(--neon-cyan);
+  background: rgba(0,212,255,0.08);
+  border: 1px solid rgba(0,212,255,0.2);
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+}
+
+/* ── PIPELINE ──────────────────────────────────────── */
+#pipeline {
+  background: var(--bg-void);
+  position: relative;
+}
+
+.pipeline-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.pipeline-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.pipeline-step {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 0 1.5rem;
+  align-items: start;
+  position: relative;
+}
+
+.pipeline-step:not(:last-child) .step-connector {
+  position: absolute;
+  left: 29px;
+  top: 60px;
+  width: 2px;
+  height: calc(100% + 1rem);
+  background: linear-gradient(180deg, var(--neon-blue), rgba(59,158,255,0.1));
+}
+
+.step-num-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.6rem;
+}
+
+.step-num {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 2px solid;
+  position: relative;
+  z-index: 1;
+}
+
+.step-num.blue   { color: var(--neon-blue);   border-color: var(--neon-blue);   background: rgba(59,158,255,0.1);  box-shadow: var(--glow-blue); }
+.step-num.purple { color: var(--neon-purple); border-color: var(--neon-purple); background: rgba(168,85,247,0.1); box-shadow: var(--glow-purple); }
+.step-num.green  { color: var(--neon-green);  border-color: var(--neon-green);  background: rgba(0,255,136,0.1);  box-shadow: var(--glow-green); }
+.step-num.cyan   { color: var(--neon-cyan);   border-color: var(--neon-cyan);   background: rgba(0,212,255,0.1);  box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+
+.step-body {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.4rem 1.6rem;
+  backdrop-filter: blur(12px);
+  margin-bottom: 1.5rem;
+}
+
+.step-tool {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: var(--neon-cyan);
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.step-title {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.step-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.8rem;
+}
+
+.step-code {
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  color: var(--neon-green);
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(0,255,136,0.15);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  line-height: 1.8;
+}
+
+.cleanup-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.cleanup-item {
+  padding: 1.2rem 1.4rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+}
+
+.cleanup-item.del {
+  background: rgba(247, 37, 133, 0.07);
+  border: 1px solid rgba(247,37,133,0.2);
+  color: var(--neon-pink);
+}
+.cleanup-item.keep {
+  background: rgba(0,255,136,0.07);
+  border: 1px solid rgba(0,255,136,0.2);
+  color: var(--neon-green);
+}
+.cleanup-item i { font-size: 1rem; }
+
+/* ── INSTALLATION TABS ─────────────────────────────── */
+#install { background: var(--bg-deep); }
+
+.install-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.5rem;
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text-secondary); }
+.tab-btn.active {
+  color: var(--neon-blue);
+  border-bottom-color: var(--neon-blue);
+}
+.tab-btn i { font-size: 0.9rem; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── TERMINAL WINDOW ───────────────────────────────── */
+.terminal {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  margin: 1.5rem 0;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  background: rgba(30, 40, 60, 0.95);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.dot.red    { background: #ff5f57; box-shadow: 0 0 6px rgba(255,95,87,0.6); }
+.dot.yellow { background: #febc2e; box-shadow: 0 0 6px rgba(254,188,46,0.6); }
+.dot.green  { background: #28c840; box-shadow: 0 0 6px rgba(40,200,64,0.6); }
+
+.terminal-title {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:hover {
+  color: var(--neon-cyan);
+  border-color: rgba(0,212,255,0.3);
+  background: rgba(0,212,255,0.06);
+}
+.copy-btn.copied {
+  color: var(--neon-green);
+  border-color: rgba(0,255,136,0.3);
+}
+
+.terminal-body {
+  background: rgba(6, 10, 18, 0.97);
+  padding: 1.4rem 1.6rem;
+  overflow-x: auto;
+}
+
+.terminal-body pre {
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  line-height: 1.85;
+  color: var(--text-primary);
+  white-space: pre;
+  tab-size: 2;
+}
+
+.term-comment { color: #4a6080; }
+.term-prompt   { color: var(--neon-blue); }
+.term-cmd      { color: var(--text-primary); }
+.term-flag     { color: var(--neon-cyan); }
+.term-string   { color: var(--neon-green); }
+.term-ok       { color: var(--neon-green); font-weight: 600; }
+.term-warn     { color: #febc2e; }
+.term-path     { color: var(--neon-purple); }
+.term-section  { color: var(--neon-cyan); font-weight: 600; }
+
+/* ── DISTRO TABLE ──────────────────────────────────── */
+.distro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.distro-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  transition: border-color 0.2s;
+}
+.distro-card:hover { border-color: rgba(0,255,136,0.3); }
+
+.distro-icon {
+  font-size: 1.5rem;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.distro-info .name {
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.distro-info .pkg {
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.distro-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--neon-green);
+}
+
+/* ── DEPENDENCIES ──────────────────────────────────── */
+#deps { background: var(--bg-void); }
+
+.deps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.dep-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.dep-card:hover { border-color: var(--border-glow); transform: translateX(4px); }
+
+.dep-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.dep-icon.blue   { background: rgba(59,158,255,0.12);  color: var(--neon-blue); }
+.dep-icon.purple { background: rgba(168,85,247,0.12); color: var(--neon-purple); }
+.dep-icon.green  { background: rgba(0,255,136,0.12);  color: var(--neon-green); }
+.dep-icon.cyan   { background: rgba(0,212,255,0.12);  color: var(--neon-cyan); }
+.dep-icon.pink   { background: rgba(247,37,133,0.12); color: var(--neon-pink); }
+
+.dep-name {
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.dep-role { font-size: 0.8rem; color: var(--text-secondary); }
+
+/* ── TROUBLESHOOTING ───────────────────────────────── */
+#troubleshoot { background: var(--bg-deep); }
+
+.trouble-list {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.trouble-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.6rem;
+  backdrop-filter: blur(12px);
+}
+
+.trouble-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  font-family: var(--font-code);
+  font-size: 0.87rem;
+  color: var(--neon-pink);
+  margin-bottom: 1rem;
+}
+.trouble-q i { margin-top: 0.1rem; flex-shrink: 0; }
+
+/* ── OUTPUT STRUCTURE ──────────────────────────────── */
+#output-section { background: var(--bg-void); }
+
+/* ── FOOTER ────────────────────────────────────────── */
+footer {
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  padding: 3rem clamp(1.5rem, 5vw, 4rem);
+  text-align: center;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--neon-blue);
+  text-shadow: var(--glow-blue);
+  margin-bottom: 0.8rem;
+}
+
+.footer-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.footer-links a {
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--neon-cyan); }
+
+.footer-legal {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.footer-stack {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+/* ── ANIMATIONS ────────────────────────────────────── */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(8px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: var(--glow-blue); }
+  50%       { box-shadow: 0 0 40px rgba(59,158,255,0.7), 0 0 80px rgba(59,158,255,0.3); }
+}
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── RESPONSIVE ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .cleanup-box { grid-template-columns: 1fr; }
+  .pipeline-step { grid-template-columns: 48px 1fr; gap: 0 1rem; }
+  .terminal-title { display: none; }
+  .hero-ascii { font-size: 0.28rem; }
+}
+
+@media (max-width: 480px) {
+  .hero-ascii { display: none; }
+  .dep-role { display: none; }
+}
+
+/* ── CUSTOM SCROLLBAR ──────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: rgba(59,158,255,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(59,158,255,0.5); }
+
+/* ── SELECTION ─────────────────────────────────────── */
+::selection { background: rgba(59,158,255,0.25); color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="page-wrap">
+
+<!-- ── NAV ─────────────────────────────────────────── -->
+<nav>
+  <a class="nav-logo" href="#">M4S D</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#deps">Deps</a></li>
+    <li><a href="#troubleshoot">Troubleshoot</a></li>
+  </ul>
+  <a href="https://github.com/mahmoudelsheikh7/M4S_D" target="_blank" class="nav-links a nav-github">
+    <i class="fab fa-github"></i> GitHub
+  </a>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-badge"><i class="fas fa-circle-dot"></i> v1.0 · C++17 · Qt6 · MIT License</div>
+
+  <pre class="hero-ascii">  ███╗   ███╗██╗  ██╗███████╗    ██████╗
+  ████╗ ████║██║  ██║██╔════╝    ██╔══██╗
+  ██╔████╔██║███████║███████╗    ██║  ██║
+  ██║╚██╔╝██║╚════██║╚════██║    ██║  ██║
+  ██║ ╚═╝ ██║     ██║███████║    ██████╔╝
+  ╚═╝     ╚═╝     ╚═╝╚══════╝    ╚═════╝</pre>
+
+  <h1 class="hero-title"><span>m4s d</span></h1>
+  <p class="hero-subtitle">// Universal Downloader &amp; AI Vocal Extractor</p>
+  <p class="hero-tagline">A production-grade desktop app that downloads from 1,000+ sites and isolates vocals using Meta's demucs AI — all offline, all automated.</p>
+
+  <div class="hero-cta-group">
+    <a href="https://github.com/mahmoudelsheikh7/M4S_D" target="_blank" class="btn-primary">
+      <i class="fab fa-github"></i> View on GitHub
+    </a>
+    <a href="#install" class="btn-secondary">
+      <i class="fas fa-download"></i> Get Started
+    </a>
+  </div>
+
+  <div class="hero-badges-row">
+    <span class="badge-chip blue"><i class="fab fa-windows"></i> &nbsp;Windows</span>
+    <span class="badge-chip blue"><i class="fab fa-linux"></i> &nbsp;Linux</span>
+    <span class="badge-chip green">C++17</span>
+    <span class="badge-chip purple">Qt6</span>
+    <span class="badge-chip cyan">htdemucs_ft AI</span>
+    <span class="badge-chip green">Offline First</span>
+    <span class="badge-chip purple">yt-dlp</span>
+    <span class="badge-chip cyan">ffmpeg</span>
+  </div>
+
+  <div class="scroll-indicator">
+    <span>SCROLL</span>
+    <i class="fas fa-chevron-down"></i>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── FEATURES ─────────────────────────────────────── -->
+<section id="features">
+  <div class="section-header reveal">
+    <div class="section-label">// capabilities</div>
+    <h2 class="section-title">Everything You Need</h2>
+    <p class="section-desc">Every feature is designed around a non-blocking, offline-first philosophy — your GUI never freezes.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <span class="feature-icon">🌐</span>
+      <div class="feature-title">Universal Download</div>
+      <div class="feature-desc">Powered by yt-dlp — YouTube, SoundCloud, Twitter/X, Instagram, and 1,000+ more platforms supported.</div>
+      <span class="feature-tag">yt-dlp</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🎵</span>
+      <div class="feature-title">Audio Default</div>
+      <div class="feature-desc">Forces .m4a (AAC best quality) by default — no manual format hunting or post-processing needed.</div>
+      <span class="feature-tag">AAC · M4A</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🎬</span>
+      <div class="feature-title">Video Mode</div>
+      <div class="feature-desc">Forces .mp4 best quality with auto-merge of video and audio streams in a single download pass.</div>
+      <span class="feature-tag">MP4 · auto-merge</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">✨</span>
+      <div class="feature-title">No Music Pipeline</div>
+      <div class="feature-desc">htdemucs_ft with shifts=2 and two-stems=vocals delivers near-zero music bleed in the vocal output.</div>
+      <span class="feature-tag">demucs · AI</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🗑️</span>
+      <div class="feature-title">Auto Cleanup</div>
+      <div class="feature-desc">Automatically deletes the original file and all demucs temp folders — only the final output is kept.</div>
+      <span class="feature-tag">zero clutter</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">📦</span>
+      <div class="feature-title">Offline First</div>
+      <div class="feature-desc">All tools are downloaded once to a local data directory and reused forever — no repeated fetches.</div>
+      <span class="feature-tag">AppData/bin</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔄</span>
+      <div class="feature-title">Auto Repair</div>
+      <div class="feature-desc">Startup diagnostic detects missing or broken tools and re-downloads them automatically — no user action needed.</div>
+      <span class="feature-tag">self-healing</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⚙️</span>
+      <div class="feature-title">Settings Panel</div>
+      <div class="feature-desc">Browse download directory and CPU/CUDA selector — all settings persisted via Qt's QSettings API.</div>
+      <span class="feature-tag">QSettings</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔇</span>
+      <div class="feature-title">Non-Blocking UI</div>
+      <div class="feature-desc">100% QProcess-driven architecture — the GUI remains fully responsive during downloads and AI processing.</div>
+      <span class="feature-tag">QProcess · async</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🖥️</span>
+      <div class="feature-title">Cross-Platform</div>
+      <div class="feature-desc">Full support for Windows (PowerShell setup) and Linux across 4 major distro families.</div>
+      <span class="feature-tag">win · linux</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⚡</span>
+      <div class="feature-title">CUDA Acceleration</div>
+      <div class="feature-desc">3–10× faster AI processing on NVIDIA RTX/A-series cards. CUDA failures silently retry on CPU.</div>
+      <span class="feature-tag">CUDA fallback</span>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔬</span>
+      <div class="feature-title">Self-Diagnostic</div>
+      <div class="feature-desc">Every launch runs a full diagnostic — yt-dlp, ffmpeg, and demucs paths are verified and displayed in the log.</div>
+      <span class="feature-tag">startup check</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── PIPELINE ──────────────────────────────────────── -->
+<section id="pipeline">
+  <div class="section-header reveal">
+    <div class="section-label">// architecture</div>
+    <h2 class="section-title">The "No Music" Pipeline</h2>
+    <p class="section-desc">Three automated stages transform any URL into a clean, vocals-only .m4a file.</p>
+  </div>
+
+  <div class="pipeline-container">
+    <div class="pipeline-flow">
+
+      <!-- Step 1 -->
+      <div class="pipeline-step reveal">
+        <div class="step-connector"></div>
+        <div class="step-num-wrap">
+          <div class="step-num blue">01</div>
+        </div>
+        <div class="step-body">
+          <div class="step-tool">yt-dlp</div>
+          <div class="step-title">Download &amp; Extract Audio</div>
+          <div class="step-desc">Downloads the best available audio stream from the URL and converts it to M4A format at maximum quality.</div>
+          <div class="step-code">-f bestaudio[ext=m4a]/bestaudio/best<br>-x --audio-format m4a --audio-quality 0<br>→ <span style="color:var(--neon-cyan)">"Song Title.m4a"</span></div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="pipeline-step reveal">
+        <div class="step-connector"></div>
+        <div class="step-num-wrap">
+          <div class="step-num purple">02</div>
+        </div>
+        <div class="step-body">
+          <div class="step-tool">demucs · htdemucs_ft</div>
+          <div class="step-title">AI Vocal Separation</div>
+          <div class="step-desc">Meta's htdemucs_ft model with shifts=2 runs source separation to isolate the vocal stem with near-zero music bleed.</div>
+          <div class="step-code">-n htdemucs_ft --two-stems=vocals<br>--shifts=2 -d cpu|cuda<br>→ <span style="color:var(--neon-cyan)">outdir/htdemucs_ft/Song Title/vocals.wav</span></div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="pipeline-step reveal">
+        <div class="step-connector"></div>
+        <div class="step-num-wrap">
+          <div class="step-num green">03</div>
+        </div>
+        <div class="step-body">
+          <div class="step-tool">ffmpeg</div>
+          <div class="step-title">Encode Final Output</div>
+          <div class="step-desc">Converts the separated vocals WAV to a high-quality 256kbps AAC M4A file ready for playback anywhere.</div>
+          <div class="step-code">-c:a aac -b:a 256k<br>→ <span style="color:var(--neon-cyan)">"Song Title (no music).m4a"</span></div>
+        </div>
+      </div>
+
+      <!-- Cleanup -->
+      <div class="pipeline-step reveal">
+        <div class="step-num-wrap">
+          <div class="step-num cyan">✓</div>
+        </div>
+        <div class="step-body">
+          <div class="step-tool">cleanup</div>
+          <div class="step-title">Automatic Cleanup</div>
+          <div class="step-desc">All intermediate files are removed. Only the clean vocal output remains.</div>
+          <div class="cleanup-box">
+            <div class="cleanup-item del"><i class="fas fa-times-circle"></i><span>Song Title.m4a<br><small style="opacity:0.6">original with music</small></span></div>
+            <div class="cleanup-item del"><i class="fas fa-times-circle"></i><span>outdir/htdemucs_ft/<br><small style="opacity:0.6">demucs temp folder</small></span></div>
+            <div class="cleanup-item keep" style="grid-column: 1/-1"><i class="fas fa-check-circle"></i><span>Song Title (no music).m4a &nbsp;✨ vocals only — KEPT</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── INSTALLATION ───────────────────────────────────── -->
+<section id="install">
+  <div class="section-header reveal">
+    <div class="section-label">// installation</div>
+    <h2 class="section-title">Get Up &amp; Running</h2>
+    <p class="section-desc">Pick your platform. The installer handles everything — dependencies, build, and desktop launcher.</p>
+  </div>
+
+  <div class="install-wrap reveal">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('linux', this)">
+        <i class="fab fa-linux"></i> Linux (Bash)
+      </button>
+      <button class="tab-btn" onclick="switchTab('windows', this)">
+        <i class="fab fa-windows"></i> Windows (PowerShell)
+      </button>
+      <button class="tab-btn" onclick="switchTab('manual', this)">
+        <i class="fas fa-hammer"></i> Manual Build
+      </button>
+    </div>
+
+    <!-- LINUX TAB -->
+    <div id="tab-linux" class="tab-panel active">
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">bash — ~/M4S_D</span>
+          <button class="copy-btn" onclick="copyCode(this, 'code-linux')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="code-linux"><span class="term-comment"># 1. Clone the repository</span>
+<span class="term-prompt">$</span> <span class="term-cmd">git clone</span> <span class="term-string">https://github.com/mahmoudelsheikh7/M4S_D.git</span>
+<span class="term-prompt">$</span> <span class="term-cmd">cd M4S_D</span>
+
+<span class="term-comment"># 2. Make installer executable</span>
+<span class="term-prompt">$</span> <span class="term-cmd">chmod +x</span> install_linux.sh
+
+<span class="term-comment"># 3. Run (do NOT use sudo — it calls sudo internally)</span>
+<span class="term-prompt">$</span> <span class="term-cmd">./install_linux.sh</span></pre>
+        </div>
+      </div>
+
+      <p style="font-size:0.88rem; color:var(--text-secondary); margin: 1rem 0 0.5rem;">The installer automatically handles everything:</p>
+
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">install_linux.sh — auto steps</span>
+          <button class="copy-btn" onclick="copyCode(this, 'code-launch')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="code-launch"><span class="term-ok">[1]</span> Detects package manager (pacman / apt / dnf / zypper)
+<span class="term-ok">[2]</span> Installs Qt6, CMake, build tools, ffmpeg, yt-dlp, pipx
+<span class="term-ok">[3]</span> Installs demucs via pipx install demucs
+<span class="term-ok">[4]</span> Injects torchcodec via pipx inject demucs torchcodec
+<span class="term-ok">[5]</span> Compiles the Qt6 application with CMake
+<span class="term-ok">[6]</span> Installs binary to <span class="term-path">/usr/local/bin/m4s_d</span>
+<span class="term-ok">[7]</span> Creates a .desktop launcher in your application menu
+
+<span class="term-section">Launch after install:</span>
+<span class="term-prompt">$</span> <span class="term-cmd">m4s_d</span>
+<span class="term-comment"># or open "m4s d" from your application menu</span></pre>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-size:0.9rem;letter-spacing:0.08em;color:var(--text-secondary);margin:2rem 0 1rem;">Supported Distributions</h3>
+      <div class="distro-grid">
+        <div class="distro-card">
+          <div class="distro-icon">🏹</div>
+          <div class="distro-info"><div class="name">Arch / Manjaro / EndeavourOS</div><div class="pkg">pacman</div></div>
+          <div class="distro-badge"><i class="fas fa-check"></i></div>
+        </div>
+        <div class="distro-card">
+          <div class="distro-icon">🐧</div>
+          <div class="distro-info"><div class="name">Ubuntu / Debian / Mint</div><div class="pkg">apt</div></div>
+          <div class="distro-badge"><i class="fas fa-check"></i></div>
+        </div>
+        <div class="distro-card">
+          <div class="distro-icon">🎩</div>
+          <div class="distro-info"><div class="name">Fedora / RHEL / Rocky</div><div class="pkg">dnf</div></div>
+          <div class="distro-badge"><i class="fas fa-check"></i></div>
+        </div>
+        <div class="distro-card">
+          <div class="distro-icon">🦎</div>
+          <div class="distro-info"><div class="name">openSUSE Tumbleweed / Leap</div><div class="pkg">zypper</div></div>
+          <div class="distro-badge"><i class="fas fa-check"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WINDOWS TAB -->
+    <div id="tab-windows" class="tab-panel">
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">powershell — M4S_D</span>
+          <button class="copy-btn" onclick="copyCode(this, 'code-win')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="code-win"><span class="term-comment"># 1. Clone the repository</span>
+<span class="term-prompt">PS></span> <span class="term-cmd">git clone</span> <span class="term-string">https://github.com/mahmoudelsheikh7/M4S_D.git</span>
+<span class="term-prompt">PS></span> <span class="term-cmd">cd M4S_D</span>
+
+<span class="term-comment"># 2. Allow script execution (one-time)</span>
+<span class="term-prompt">PS></span> <span class="term-cmd">Set-ExecutionPolicy</span> <span class="term-flag">-Scope</span> CurrentUser <span class="term-flag">-ExecutionPolicy</span> RemoteSigned
+
+<span class="term-comment"># 3. Run the setup script</span>
+<span class="term-prompt">PS></span> <span class="term-cmd">.\install_windows.ps1</span></pre>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-display);font-size:0.9rem;letter-spacing:0.08em;color:var(--text-secondary);margin:2rem 0 1rem;">Building on Windows — Option A (MSYS2, Recommended)</h3>
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">MSYS2 MinGW 64-bit</span>
+          <button class="copy-btn" onclick="copyCode(this, 'code-msys2')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="code-msys2"><span class="term-comment"># Install Qt6 and build tools via pacman</span>
+<span class="term-prompt">$</span> <span class="term-cmd">pacman -S</span> mingw-w64-x86_64-qt6-base mingw-w64-x86_64-cmake \
+           mingw-w64-x86_64-gcc make
+
+<span class="term-prompt">$</span> <span class="term-cmd">cd</span> /c/path/to/M4S_D
+<span class="term-prompt">$</span> <span class="term-cmd">mkdir</span> build && <span class="term-cmd">cd</span> build
+<span class="term-prompt">$</span> <span class="term-cmd">cmake</span> .. <span class="term-flag">-G</span> <span class="term-string">"MinGW Makefiles"</span> <span class="term-flag">-DCMAKE_BUILD_TYPE=</span>Release
+<span class="term-prompt">$</span> <span class="term-cmd">mingw32-make</span> <span class="term-flag">-j$(nproc)</span></pre>
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-top:1rem;"><i class="fas fa-info-circle" style="color:var(--neon-cyan)"></i> &nbsp;Option B: Install Qt6 from <a href="https://www.qt.io/download-open-source" style="color:var(--neon-cyan)">qt.io</a>, open CMakeLists.txt in Qt Creator, and build with Release configuration.</p>
+    </div>
+
+    <!-- MANUAL BUILD TAB -->
+    <div id="tab-manual" class="tab-panel">
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">bash — Manual Build (Linux)</span>
+          <button class="copy-btn" onclick="copyCode(this, 'code-manual')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="code-manual"><span class="term-comment"># Arch Linux</span>
+<span class="term-prompt">$</span> <span class="term-cmd">sudo pacman -S</span> qt6-base qt6-tools cmake base-devel ffmpeg yt-dlp python-pipx
+
+<span class="term-comment"># Ubuntu / Debian</span>
+<span class="term-prompt">$</span> <span class="term-cmd">sudo apt install</span> qt6-base-dev qt6-tools-dev cmake build-essential ffmpeg pipx python3
+
+<span class="term-comment"># Install demucs with audio-save fix</span>
+<span class="term-prompt">$</span> <span class="term-cmd">pipx install</span> demucs
+<span class="term-prompt">$</span> <span class="term-cmd">pipx inject</span> demucs torchcodec
+
+<span class="term-comment"># Build the application</span>
+<span class="term-prompt">$</span> <span class="term-cmd">mkdir</span> build && <span class="term-cmd">cd</span> build
+<span class="term-prompt">$</span> <span class="term-cmd">cmake</span> .. <span class="term-flag">-DCMAKE_BUILD_TYPE=</span>Release
+<span class="term-prompt">$</span> <span class="term-cmd">make</span> <span class="term-flag">-j$(nproc)</span>
+<span class="term-prompt">$</span> <span class="term-cmd">./m4s_d</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── DEPENDENCIES ──────────────────────────────────── -->
+<section id="deps">
+  <div class="section-header reveal">
+    <div class="section-label">// dependencies</div>
+    <h2 class="section-title">Tech Stack</h2>
+    <p class="section-desc">Every component chosen for reliability, performance, and permissive licensing.</p>
+  </div>
+  <div class="deps-grid">
+    <div class="dep-card reveal">
+      <div class="dep-icon purple"><i class="fas fa-desktop"></i></div>
+      <div><div class="dep-name">Qt6 (Core, Gui, Widgets, Network)</div><div class="dep-role">GUI framework · LGPL v3</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon blue"><i class="fas fa-cog"></i></div>
+      <div><div class="dep-name">CMake 3.16+</div><div class="dep-role">Build system</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon cyan"><i class="fas fa-download"></i></div>
+      <div><div class="dep-name">yt-dlp</div><div class="dep-role">Universal media downloader · The Unlicense</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon green"><i class="fas fa-film"></i></div>
+      <div><div class="dep-name">ffmpeg</div><div class="dep-role">Audio conversion (WAV → M4A)</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon blue"><i class="fab fa-python"></i></div>
+      <div><div class="dep-name">Python 3</div><div class="dep-role">Runtime for demucs</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon purple"><i class="fas fa-box"></i></div>
+      <div><div class="dep-name">pipx</div><div class="dep-role">Isolated Python environment manager</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon pink"><i class="fas fa-brain"></i></div>
+      <div><div class="dep-name">demucs (htdemucs_ft)</div><div class="dep-role">AI vocal separation · Meta AI · MIT</div></div>
+    </div>
+    <div class="dep-card reveal">
+      <div class="dep-icon cyan"><i class="fas fa-music"></i></div>
+      <div><div class="dep-name">torchcodec</div><div class="dep-role">Audio I/O fix — replaces torchaudio</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── TROUBLESHOOTING ───────────────────────────────── -->
+<section id="troubleshoot">
+  <div class="section-header reveal">
+    <div class="section-label">// troubleshooting</div>
+    <h2 class="section-title">Common Issues</h2>
+    <p class="section-desc">Quick fixes for the most frequent setup problems.</p>
+  </div>
+
+  <div class="trouble-list">
+    <div class="trouble-item reveal">
+      <div class="trouble-q"><i class="fas fa-exclamation-triangle"></i> demucs: command not found after install</div>
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">fix: PATH issue</span>
+          <button class="copy-btn" onclick="copyCode(this, 'fix1')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="fix1"><span class="term-prompt">$</span> <span class="term-cmd">echo</span> <span class="term-string">'export PATH="$HOME/.local/bin:$PATH"'</span> >> ~/.bashrc && source ~/.bashrc</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="trouble-item reveal">
+      <div class="trouble-q"><i class="fas fa-exclamation-triangle"></i> Demucs audio-save error (torchaudio.backend.sox_io_backend)</div>
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">fix: inject torchcodec</span>
+          <button class="copy-btn" onclick="copyCode(this, 'fix2')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="fix2"><span class="term-prompt">$</span> <span class="term-cmd">pipx inject</span> demucs torchcodec</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="trouble-item reveal">
+      <div class="trouble-q"><i class="fas fa-exclamation-triangle"></i> yt-dlp HTTP 403 error</div>
+      <div class="terminal">
+        <div class="terminal-bar" style="position:relative;">
+          <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+          <span class="terminal-title">fix: update yt-dlp</span>
+          <button class="copy-btn" onclick="copyCode(this, 'fix3')"><i class="fas fa-copy"></i> Copy</button>
+        </div>
+        <div class="terminal-body">
+          <pre id="fix3"><span class="term-prompt">$</span> yt-dlp <span class="term-flag">-U</span>   <span class="term-comment"># or: pipx upgrade yt-dlp</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="trouble-item reveal">
+      <div class="trouble-q"><i class="fas fa-exclamation-triangle"></i> App shows all tools as missing on first Windows run</div>
+      <div style="font-size:0.88rem; color:var(--text-secondary); padding: 0.5rem 0 0; display:flex; gap:0.6rem; align-items:flex-start;">
+        <i class="fas fa-arrow-right" style="color:var(--neon-green); margin-top:0.15rem; flex-shrink:0;"></i>
+        Click <strong style="color:var(--neon-blue)">⬇ Setup Tools</strong> in the app — it will download and save yt-dlp.exe and ffmpeg.exe to the local data directory automatically. No further action needed on subsequent launches.
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── OUTPUT STRUCTURE ──────────────────────────────── -->
+<section id="output-section">
+  <div class="section-header reveal">
+    <div class="section-label">// output</div>
+    <h2 class="section-title">Output Structure</h2>
+    <p class="section-desc">Files are organized cleanly. The download directory is configurable in Settings.</p>
+  </div>
+  <div style="max-width:700px; margin:0 auto;" class="reveal">
+    <div class="terminal">
+      <div class="terminal-bar" style="position:relative;">
+        <div class="terminal-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+        <span class="terminal-title">~/Music/m4s_d/ — output tree</span>
+        <button class="copy-btn" onclick="copyCode(this, 'code-output')"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+      <div class="terminal-body">
+        <pre id="code-output"><span class="term-path">~/Music/m4s_d/</span>                         <span class="term-comment">← configurable via Settings</span>
+├── <span class="term-string">Song Title.mp4</span>                     <span class="term-comment">← video download (no music mode off)</span>
+├── <span class="term-string">Song Title.m4a</span>                     <span class="term-comment">← audio download (no music mode off)</span>
+│
+└── <span class="term-comment">[No Music mode ON — only these files are kept:]</span>
+    └── <span class="term-ok">Song Title (no music).m4a</span>      <span class="term-comment">← vocals isolated ✨</span>
+        <span class="term-comment">(original .m4a deleted · demucs temp folder deleted)</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── FOOTER ─────────────────────────────────────────── -->
+<footer>
+  <div class="footer-logo">M4S D</div>
+  <p class="footer-desc">Universal Downloader &amp; AI Vocal Extractor</p>
+  <div class="footer-links">
+    <a href="https://github.com/mahmoudelsheikh7/M4S_D" target="_blank"><i class="fab fa-github"></i> &nbsp;GitHub Repository</a>
+    <a href="#features">Features</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#install">Install</a>
+    <a href="#troubleshoot">Troubleshoot</a>
+  </div>
+  <div class="footer-stack">
+    <span class="badge-chip blue">C++17</span>
+    <span class="badge-chip purple">Qt6</span>
+    <span class="badge-chip cyan">yt-dlp · The Unlicense</span>
+    <span class="badge-chip green">demucs · MIT</span>
+    <span class="badge-chip purple">Qt6 · LGPL v3</span>
+  </div>
+  <p class="footer-legal" style="margin-top:1.5rem;">MIT License · Built with ❤️ using C++17 · Qt6 · yt-dlp · ffmpeg · demucs htdemucs_ft</p>
+  <p class="footer-legal" style="margin-top:0.4rem;"><a href="https://github.com/mahmoudelsheikh7/M4S_D" style="color:var(--neon-blue);text-decoration:none;">github.com/mahmoudelsheikh7/M4S_D</a></p>
+</footer>
+
+</div><!-- /page-wrap -->
+
+<script>
+/* ── CANVAS BACKGROUND ─────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [], gridLines = [];
+  const PARTICLE_COUNT = 60;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initParticles() {
+    particles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 1.5 + 0.5,
+        alpha: Math.random() * 0.5 + 0.2,
+        color: Math.random() > 0.6 ? '#3b9eff' : Math.random() > 0.5 ? '#a855f7' : '#00d4ff'
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw faint grid
+    ctx.strokeStyle = 'rgba(59,158,255,0.03)';
+    ctx.lineWidth = 1;
+    const gSize = 80;
+    for (let x = 0; x < W; x += gSize) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += gSize) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // Draw connection lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 130) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(59,158,255,${0.06 * (1 - dist/130)})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw particles
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color.replace(')', `,${p.alpha})`).replace('rgb', 'rgba');
+      // Simple approach:
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initParticles();
+  draw();
+  window.addEventListener('resize', () => { resize(); initParticles(); });
+})();
+
+/* ── TABS ──────────────────────────────────────────── */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ── COPY TO CLIPBOARD ─────────────────────────────── */
+function copyCode(btn, codeId) {
+  const pre = document.getElementById(codeId);
+  const text = pre ? pre.innerText : '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+/* ── SCROLL REVEAL ─────────────────────────────────── */
+(function() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        e.target.style.transitionDelay = (i * 0.06) + 's';
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+})();
+
+/* ── NAV SCROLL EFFECT ─────────────────────────────── */
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  nav.style.background = window.scrollY > 50
+    ? 'rgba(6, 11, 20, 0.95)'
+    : 'rgba(6, 11, 20, 0.82)';
+});
+</script>
+</body>
+</html>
