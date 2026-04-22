@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(m4s_d VERSION 1.0.0 LANGUAGES CXX)
+project(m4s_d VERSION 2.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,6 +28,7 @@ set_target_properties(m4s_d PROPERTIES
 if(UNIX AND NOT APPLE)
     include(GNUInstallDirs)
     install(TARGETS m4s_d DESTINATION ${CMAKE_INSTALL_BINDIR})
+
     configure_file(
         "${CMAKE_SOURCE_DIR}/m4s_d.desktop.in"
         "${CMAKE_BINARY_DIR}/m4s_d.desktop"

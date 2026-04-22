@@ -45,7 +45,12 @@
 #include <QStyleFactory>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QStandardItemModel>
 #include <functional>
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filesystem helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 static QString appDataDir()
 {
@@ -104,6 +109,10 @@ static QString findTool(const QString &name)
     return findInPath(name);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme palettes
+// ─────────────────────────────────────────────────────────────────────────────
+
 static void makeDarkPalette(QApplication &app)
 {
     app.setStyle(QStyleFactory::create("Fusion"));
@@ -126,8 +135,180 @@ static void makeDarkPalette(QApplication &app)
     app.setPalette(p);
 }
 
+static void makeLightPalette(QApplication &app)
+{
+    app.setStyle(QStyleFactory::create("Fusion"));
+    QPalette p;
+    p.setColor(QPalette::Window,          QColor(242, 242, 247));
+    p.setColor(QPalette::WindowText,      QColor(28,  28,  30 ));
+    p.setColor(QPalette::Base,            QColor(255, 255, 255));
+    p.setColor(QPalette::AlternateBase,   QColor(235, 235, 240));
+    p.setColor(QPalette::ToolTipBase,     QColor(255, 255, 255));
+    p.setColor(QPalette::ToolTipText,     QColor(28,  28,  30 ));
+    p.setColor(QPalette::Text,            QColor(28,  28,  30 ));
+    p.setColor(QPalette::Button,          QColor(210, 210, 215));
+    p.setColor(QPalette::ButtonText,      QColor(28,  28,  30 ));
+    p.setColor(QPalette::BrightText,      Qt::red);
+    p.setColor(QPalette::Link,            QColor(0,   90,  200));
+    p.setColor(QPalette::Highlight,       QColor(0,   90,  200));
+    p.setColor(QPalette::HighlightedText, Qt::white);
+    p.setColor(QPalette::Disabled, QPalette::Text,       QColor(150, 150, 160));
+    p.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(150, 150, 160));
+    app.setPalette(p);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// SetupWorker — downloads yt-dlp and (Windows) ffmpeg into binDir() once
+// Bilingual string table
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct Strings {
+    QString langBtnText;
+    QString windowTitle;
+    QString titleHtml;
+    QString setupBtn;
+    QString settingsBtn;
+    QString inputGroupTitle;
+    QString urlLabel;
+    QString urlPlaceholder;
+    QString pasteBtn;
+    QString browseFileBtn;
+    QString clearFileBtn;
+    QString localFilePrefix;
+    QString formatLabel;
+    QStringList formatItems;
+    QString noMusicLabel;
+    QString extremeLabel;
+    QString startBtn;
+    QString stopBtn;
+    QString clearLogBtn;
+    QString logGroupTitle;
+    QString statusReady;
+    QString statusProcessing;
+    QString statusDone;
+    QString settingsTitle;
+    QString settingsDirGroup;
+    QString settingsBrowse;
+    QString settingsDevGroup;
+    QString settingsDevNote;
+    QString settingsDevCpu;
+    QString settingsDevCuda;
+    QString msgNoInput;
+    QString msgNoYtdlp;
+    QString msgUrlEmpty;
+    QString diagTitle;
+    QString diagDataDir;
+    QString diagReady;
+};
+
+static const Strings &getStrings(bool arabic)
+{
+    static const Strings en = {
+        "عربي",
+        "m4s d  v2.0  —  Universal Downloader & Vocal AI Extractor",
+        "<span style='font-size:17px;font-weight:700;color:#80cbc4;'>m4s d</span>"
+        "<span style='font-size:11px;color:#666;'>  v2.0  —  Universal Downloader + AI Vocal Extractor</span>",
+        "⬇  Setup Tools",
+        "⚙  Settings",
+        "Download / Process",
+        "URL:",
+        "https://youtube.com/watch?v=…  (any yt-dlp supported site — 1,000+ platforms)",
+        "📋 Paste",
+        "📂 Browse File",
+        "✕",
+        "Local: ",
+        "Format / Quality:",
+        {
+            "🎵  Audio — MP3  (.mp3)",
+            "🎵  Audio — M4A  (.m4a — default)",
+            "🎵  Audio — WAV  (.wav — lossless)",
+            "🎵  Audio — FLAC  (.flac — lossless)",
+            "─────────────────────────────────",
+            "🎬  Video — Best Quality  (.mp4)",
+            "🎬  Video — 4K / 2160p  (.mp4)",
+            "🎬  Video — 1080p HD  (.mp4)",
+            "🎬  Video — 720p  (.mp4)",
+            "🎬  Video — 480p  (.mp4)"
+        },
+        "✨  No Music  —  AI vocal extraction (Demucs htdemucs_ft)  →  saves \"Title (no music).[ext]\", deletes original",
+        "⚡  Extreme Vocal Isolation  —  shifts=4, overlap=0.25  (slower, maximum accuracy)",
+        "▶   Start",
+        "■   Stop",
+        "Clear Log",
+        "Process Log",
+        "Ready",
+        "Processing…",
+        "Done",
+        "Settings — m4s d",
+        "Download Directory",
+        "Browse…",
+        "Demucs Processing Device",
+        "<small style='color:#aaa;'>App auto-retries on CPU if CUDA fails — no action needed.</small>",
+        "cpu  —  Always safe (recommended)",
+        "cuda —  NVIDIA GPU (3–10× faster)",
+        "Please enter a URL or browse a local file.",
+        "yt-dlp not found. Click \"Setup Tools\" to install it.",
+        "Please enter a URL.",
+        "m4s d — Self-Diagnostic",
+        "  Data dir: ",
+        "  Ready — paste a URL or browse a local file, then click Start."
+    };
+
+    static const Strings ar = {
+        "EN",
+        "m4s d  v2.0  —  محمل عالمي + استخلاص صوتي بالذكاء الاصطناعي",
+        "<span style='font-size:17px;font-weight:700;color:#80cbc4;'>m4s d</span>"
+        "<span style='font-size:11px;color:#666;'>  v2.0  —  محمل عالمي + استخلاص صوتي AI</span>",
+        "⬇  تحميل الأدوات",
+        "⚙  الإعدادات",
+        "تحميل / معالجة",
+        "الرابط:",
+        "https://youtube.com/watch?v=…  (أي موقع يدعمه yt-dlp — أكثر من 1000 منصة)",
+        "📋 لصق",
+        "📂 ملف محلي",
+        "✕",
+        "محلي: ",
+        "الصيغة / الجودة:",
+        {
+            "🎵  صوت — MP3",
+            "🎵  صوت — M4A (افتراضي)",
+            "🎵  صوت — WAV (بلا خسارة)",
+            "🎵  صوت — FLAC (بلا خسارة)",
+            "─────────────────────────────────",
+            "🎬  فيديو — أفضل جودة (.mp4)",
+            "🎬  فيديو — 4K / 2160p",
+            "🎬  فيديو — 1080p HD",
+            "🎬  فيديو — 720p",
+            "🎬  فيديو — 480p"
+        },
+        "✨  بدون موسيقى — استخلاص صوتي بالذكاء الاصطناعي → يحفظ «العنوان (بدون موسيقى)» ويحذف الأصلي",
+        "⚡  عزل صوتي متطرف — shifts=4، overlap=0.25 (أبطأ، دقة قصوى)",
+        "▶   بدء",
+        "■   إيقاف",
+        "مسح السجل",
+        "سجل المعالجة",
+        "جاهز",
+        "جاري المعالجة…",
+        "تم",
+        "الإعدادات — m4s d",
+        "مجلد التحميل",
+        "استعراض…",
+        "جهاز معالجة Demucs",
+        "<small style='color:#aaa;'>يعيد التطبيق المحاولة على المعالج تلقائياً إذا فشل CUDA.</small>",
+        "cpu  —  آمن دائماً (موصى به)",
+        "cuda —  معالج رسوميات NVIDIA (أسرع 3-10×)",
+        "أدخل رابطاً أو اختر ملفاً محلياً.",
+        ".yt-dlp غير موجود. اضغط «تحميل الأدوات» لتثبيته",
+        "أدخل رابطاً.",
+        "m4s d — التشخيص الذاتي",
+        "  مجلد البيانات: ",
+        "  جاهز — الصق رابطاً أو اختر ملفاً محلياً، ثم اضغط «بدء»."
+    };
+
+    return arabic ? ar : en;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SetupWorker  (offline-first one-time tool downloader)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SetupWorker : public QObject
@@ -152,9 +333,9 @@ private:
     void extractFfmpegZip(const QString &zipPath);
     void complete(bool ok);
 
-    QNetworkAccessManager *m_nam = nullptr;
-    bool m_needFfmpeg = false;
-    QString m_zipTemp;
+    QNetworkAccessManager *m_nam  = nullptr;
+    bool                   m_needFfmpeg = false;
+    QString                m_zipTemp;
 };
 
 SetupWorker::SetupWorker(QObject *parent) : QObject(parent)
@@ -166,7 +347,7 @@ void SetupWorker::run()
 {
     QDir().mkpath(binDir());
 
-    m_needFfmpeg = findTool("ffmpeg").isEmpty();
+    m_needFfmpeg  = findTool("ffmpeg").isEmpty();
     bool needYtdlp = findTool("yt-dlp").isEmpty();
 
     if (!needYtdlp && !m_needFfmpeg) {
@@ -190,13 +371,15 @@ void SetupWorker::downloadYtdlp()
     QUrl url("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp");
 #endif
     QNetworkRequest req(url);
-    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                     QNetworkRequest::NoLessSafeRedirectPolicy);
     auto *reply = m_nam->get(req);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] { onYtdlpReply(reply); });
-    connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 r, qint64 t) {
+    connect(reply, &QNetworkReply::finished,
+            this, [this, reply] { onYtdlpReply(reply); });
+    connect(reply, &QNetworkReply::downloadProgress,
+            this, [this](qint64 r, qint64 t) {
         if (t > 0)
-            emit message(QString("  [↓] yt-dlp  %1/%2 KB")
-                .arg(r/1024).arg(t/1024), "#80cbc4");
+            emit message(QString("  [↓] yt-dlp  %1/%2 KB").arg(r/1024).arg(t/1024), "#80cbc4");
     });
 }
 
@@ -232,7 +415,7 @@ void SetupWorker::onYtdlpReply(QNetworkReply *reply)
 void SetupWorker::downloadFfmpegWin()
 {
 #ifndef Q_OS_WIN
-    emit message("  [WW] ffmpeg not found. Install it via your package manager.", "#ffa726");
+    emit message("  [WW] ffmpeg not found. Install via your system package manager.", "#ffa726");
     complete(true);
     return;
 #else
@@ -240,13 +423,16 @@ void SetupWorker::downloadFfmpegWin()
     QUrl url("https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/"
              "ffmpeg-master-latest-win64-gpl.zip");
     QNetworkRequest req(url);
-    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                     QNetworkRequest::NoLessSafeRedirectPolicy);
     auto *reply = m_nam->get(req);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] { onFfmpegZipReply(reply); });
-    connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 r, qint64 t) {
+    connect(reply, &QNetworkReply::finished,
+            this, [this, reply] { onFfmpegZipReply(reply); });
+    connect(reply, &QNetworkReply::downloadProgress,
+            this, [this](qint64 r, qint64 t) {
         if (t > 0)
             emit message(QString("  [↓] ffmpeg.zip  %1/%2 MB")
-                .arg(r/1048576).arg(t/1048576), "#80cbc4");
+                         .arg(r/1048576).arg(t/1048576), "#80cbc4");
     });
 #endif
 }
@@ -285,16 +471,15 @@ void SetupWorker::extractFfmpegZip(const QString &zipPath)
          << QString("Expand-Archive -Force -Path '%1' -DestinationPath '%2'")
                 .arg(zipPath, extractDir);
     connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, [this, proc, extractDir, zipPath](int code, QProcess::ExitStatus st) {
+            this, [this, proc, zipPath](int code, QProcess::ExitStatus st) {
         proc->deleteLater();
         QFile::remove(zipPath);
         onExtractFinished(code, st);
-        Q_UNUSED(extractDir);
     });
     proc->start("powershell.exe", args);
 #else
-    Q_UNUSED(proc);
-    Q_UNUSED(extractDir);
+    Q_UNUSED(proc)
+    Q_UNUSED(extractDir)
     complete(true);
 #endif
 }
@@ -338,19 +523,21 @@ class SettingsDialog : public QDialog
 {
     Q_OBJECT
 public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
+    explicit SettingsDialog(bool arabic, QWidget *parent = nullptr);
     QString downloadDir() const;
     QString device() const;
 
 private:
-    QLineEdit  *m_dirEdit   = nullptr;
-    QComboBox  *m_devCombo  = nullptr;
+    QLineEdit *m_dirEdit  = nullptr;
+    QComboBox *m_devCombo = nullptr;
 };
 
-SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
+SettingsDialog::SettingsDialog(bool arabic, QWidget *parent) : QDialog(parent)
 {
-    setWindowTitle("Settings — m4s d");
+    const Strings &S = getStrings(arabic);
+    setWindowTitle(S.settingsTitle);
     setMinimumWidth(520);
+    setLayoutDirection(arabic ? Qt::RightToLeft : Qt::LeftToRight);
 
     QSettings s;
     QString defDir = QStandardPaths::writableLocation(QStandardPaths::MusicLocation) + "/m4s_d";
@@ -358,26 +545,25 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
     auto *root = new QVBoxLayout(this);
     root->setSpacing(14);
 
-    auto *dirGroup = new QGroupBox("Download Directory");
+    auto *dirGroup = new QGroupBox(S.settingsDirGroup);
     auto *dirRow   = new QHBoxLayout(dirGroup);
     m_dirEdit = new QLineEdit(s.value("downloadDir", defDir).toString());
     m_dirEdit->setMinimumWidth(300);
-    auto *browseBtn = new QPushButton("Browse…");
-    browseBtn->setFixedWidth(90);
+    auto *browseBtn = new QPushButton(S.settingsBrowse);
+    browseBtn->setFixedWidth(100);
     dirRow->addWidget(m_dirEdit, 1);
     dirRow->addWidget(browseBtn);
 
-    auto *devGroup = new QGroupBox("Demucs Processing Device");
+    auto *devGroup = new QGroupBox(S.settingsDevGroup);
     auto *devRow   = new QHBoxLayout(devGroup);
     m_devCombo = new QComboBox;
-    m_devCombo->addItem("cpu  —  Always safe (recommended)", "cpu");
-    m_devCombo->addItem("cuda —  NVIDIA GPU (faster)",       "cuda");
-    int devIdx = (s.value("device", "cpu").toString() == "cuda") ? 1 : 0;
-    m_devCombo->setCurrentIndex(devIdx);
+    m_devCombo->addItem(S.settingsDevCpu,  "cpu");
+    m_devCombo->addItem(S.settingsDevCuda, "cuda");
+    m_devCombo->setCurrentIndex(
+        s.value("device", "cpu").toString() == "cuda" ? 1 : 0);
     devRow->addWidget(m_devCombo, 1);
 
-    auto *noteLabel = new QLabel(
-        "<small style='color:#aaa;'>The app auto-retries on CPU if CUDA fails.</small>");
+    auto *noteLabel = new QLabel(S.settingsDevNote);
     noteLabel->setTextFormat(Qt::RichText);
 
     auto *btns = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -388,9 +574,9 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
     root->addStretch();
     root->addWidget(btns);
 
-    connect(browseBtn, &QPushButton::clicked, this, [this] {
-        QString d = QFileDialog::getExistingDirectory(this, "Select Download Directory",
-                                                      m_dirEdit->text());
+    connect(browseBtn, &QPushButton::clicked, this, [this, &S] {
+        QString d = QFileDialog::getExistingDirectory(
+            this, S.settingsDirGroup, m_dirEdit->text());
         if (!d.isEmpty())
             m_dirEdit->setText(d);
     });
@@ -398,17 +584,17 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
     connect(btns, &QDialogButtonBox::accepted, this, [this] {
         QSettings s;
         s.setValue("downloadDir", m_dirEdit->text());
-        s.setValue("device", m_devCombo->currentData().toString());
+        s.setValue("device",     m_devCombo->currentData().toString());
         accept();
     });
     connect(btns, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
 
 QString SettingsDialog::downloadDir() const { return m_dirEdit->text(); }
-QString SettingsDialog::device() const      { return m_devCombo->currentData().toString(); }
+QString SettingsDialog::device()      const { return m_devCombo->currentData().toString(); }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MainWindow
+// MainWindow — declaration
 // ─────────────────────────────────────────────────────────────────────────────
 
 class MainWindow : public QMainWindow
@@ -421,11 +607,18 @@ private slots:
     void onStart();
     void onStop();
     void onPaste();
+    void onBrowseLocalFile();
+    void onClearLocalFile();
     void onOpenSettings();
     void onSetupDeps();
+    void onToggleLanguage();
+    void onToggleTheme();
 
     void onYtdlpData();
     void onDownloadFinished(int code, QProcess::ExitStatus st);
+
+    void onExtractAudioData();
+    void onExtractAudioFinished(int code, QProcess::ExitStatus st);
 
     void onDemucsData();
     void onDemucsFinished(int code, QProcess::ExitStatus st);
@@ -435,72 +628,132 @@ private slots:
 
 private:
     void buildUi();
+    void populateFormatCombo();
     void checkDeps();
-    void appendLog(const QString &html, const QString &color = "#cccccc");
+    void updateCheckboxState();
+    void applyLanguage();
+    void applyTheme();
+    void appendLog(const QString &text, const QString &color = "#cccccc");
     void setRunning(bool running);
+    void doCleanup();
+
     QString outDir() const;
     QString currentDevice() const;
+    QString outputExtForAudio() const;
+    bool    isAudioMode() const;
+
     void startDownload();
+    void startLocalProcess();
+    void startExtractAudio(const QString &videoFile);
+    void startDirectConvert(const QString &inputFile);
     void startDemucs(const QString &audioFile);
-    void startConvert(const QString &vocalsWav, const QString &outM4a);
+    void startConvert(const QString &inputAudio, const QString &outputFile);
     void finishPipeline();
 
-    QLineEdit   *m_urlEdit       = nullptr;
-    QPushButton *m_pasteBtn      = nullptr;
-    QPushButton *m_startBtn      = nullptr;
-    QPushButton *m_stopBtn       = nullptr;
-    QPushButton *m_settingsBtn   = nullptr;
-    QPushButton *m_setupBtn      = nullptr;
-    QComboBox   *m_formatCombo   = nullptr;
-    QCheckBox   *m_noMusicChk    = nullptr;
-    QTextEdit   *m_log           = nullptr;
-    QProgressBar *m_progress     = nullptr;
+    // ── Toolbar widgets
+    QLabel      *m_titleLabel  = nullptr;
+    QPushButton *m_langBtn     = nullptr;
+    QPushButton *m_themeBtn    = nullptr;
+    QPushButton *m_setupBtn    = nullptr;
+    QPushButton *m_settingsBtn = nullptr;
 
-    QProcess *m_proc = nullptr;
+    // ── Input area
+    QGroupBox   *m_inputGroup     = nullptr;
+    QLabel      *m_urlLabel       = nullptr;
+    QLineEdit   *m_urlEdit        = nullptr;
+    QPushButton *m_pasteBtn       = nullptr;
+    QPushButton *m_localFileBtn   = nullptr;
+    QPushButton *m_clearFileBtn   = nullptr;
+    QLabel      *m_localFileLabel = nullptr;
+    QLabel      *m_fmtLabel       = nullptr;
+    QComboBox   *m_formatCombo    = nullptr;
+    QCheckBox   *m_noMusicChk     = nullptr;
+    QCheckBox   *m_extremeChk     = nullptr;
+
+    // ── Control area
+    QPushButton  *m_startBtn  = nullptr;
+    QPushButton  *m_stopBtn   = nullptr;
+    QProgressBar *m_progress  = nullptr;
+
+    // ── Log area
+    QGroupBox *m_logGroup = nullptr;
+    QTextEdit *m_log      = nullptr;
+
+    // ── State
+    bool    m_arabic    = false;
+    bool    m_darkTheme = true;
+    bool    m_cudaFailed = false;
 
     QString m_ytdlpPath;
     QString m_ffmpegPath;
     QString m_demucsPath;
 
+    QString m_localFilePath;
     QString m_downloadedFile;
+    QString m_extractedAudioFile;
     QString m_pendingDelete;
     QString m_pendingConvertOut;
-    bool    m_cudaFailed = false;
+
+    QProcess *m_proc = nullptr;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MainWindow — construction
+// ─────────────────────────────────────────────────────────────────────────────
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     QSettings s;
-    setWindowTitle("m4s d  —  Universal Downloader & Vocal Extractor");
-    setMinimumSize(760, 580);
+    m_arabic    = s.value("arabic",    false).toBool();
+    m_darkTheme = s.value("darkTheme", true).toBool();
 
+    resize(920, 680);
     QRect scr = QGuiApplication::primaryScreen()->availableGeometry();
-    resize(860, 640);
     move((scr.width() - width()) / 2, (scr.height() - height()) / 2);
+    setMinimumSize(780, 600);
 
     buildUi();
+    applyLanguage();
+    applyTheme();
     checkDeps();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// buildUi  — creates widgets once; applyLanguage() fills text
+// ─────────────────────────────────────────────────────────────────────────────
 
 void MainWindow::buildUi()
 {
     auto *central = new QWidget(this);
     setCentralWidget(central);
-
     auto *root = new QVBoxLayout(central);
     root->setSpacing(10);
     root->setContentsMargins(14, 14, 14, 10);
 
+    // ── Top bar ───────────────────────────────────────────────────────────────
     auto *topRow = new QHBoxLayout;
-    auto *titleLabel = new QLabel(
-        "<span style='font-size:18px;font-weight:700;color:#80cbc4;'>m4s d</span>"
-        "<span style='font-size:12px;color:#777;'>  v1.0  —  Universal Downloader + Vocal AI</span>");
-    titleLabel->setTextFormat(Qt::RichText);
-    m_settingsBtn = new QPushButton("⚙  Settings");
-    m_setupBtn    = new QPushButton("⬇  Setup Tools");
+
+    m_titleLabel = new QLabel;
+    m_titleLabel->setTextFormat(Qt::RichText);
+
+    m_langBtn  = new QPushButton;
+    m_themeBtn = new QPushButton;
+    m_setupBtn = new QPushButton;
+    m_settingsBtn = new QPushButton;
+
+    for (auto *btn : {m_langBtn, m_themeBtn}) {
+        btn->setFixedSize(54, 28);
+        btn->setStyleSheet(
+            "QPushButton{background:#333;color:#ccc;border-radius:4px;font-size:13px;}"
+            "QPushButton:hover{background:#444;}");
+    }
+    m_setupBtn->setFixedWidth(128);
     m_settingsBtn->setFixedWidth(110);
-    m_setupBtn->setFixedWidth(120);
-    topRow->addWidget(titleLabel, 1);
+
+    topRow->addWidget(m_titleLabel, 1);
+    topRow->addWidget(m_langBtn);
+    topRow->addWidget(m_themeBtn);
+    topRow->addSpacing(8);
     topRow->addWidget(m_setupBtn);
     topRow->addWidget(m_settingsBtn);
     root->addLayout(topRow);
@@ -510,45 +763,80 @@ void MainWindow::buildUi()
     sep->setStyleSheet("color:#333;");
     root->addWidget(sep);
 
-    auto *inputGroup = new QGroupBox("Download");
-    auto *inputGrid  = new QGridLayout(inputGroup);
+    // ── Input group ───────────────────────────────────────────────────────────
+    m_inputGroup = new QGroupBox;
+    auto *inputGrid = new QGridLayout(m_inputGroup);
     inputGrid->setSpacing(8);
+    inputGrid->setColumnStretch(1, 1);
 
-    auto *urlLbl = new QLabel("URL:");
-    urlLbl->setFixedWidth(42);
-    m_urlEdit = new QLineEdit;
-    m_urlEdit->setPlaceholderText("https://youtube.com/watch?v=…  (any yt-dlp-supported site)");
-    m_pasteBtn = new QPushButton("📋 Paste");
-    m_pasteBtn->setFixedWidth(80);
+    m_urlLabel = new QLabel;
+    m_urlLabel->setFixedWidth(62);
+    m_urlEdit  = new QLineEdit;
+    m_pasteBtn = new QPushButton;
+    m_pasteBtn->setFixedWidth(84);
 
-    auto *fmtLbl = new QLabel("Format:");
-    fmtLbl->setFixedWidth(52);
+    m_localFileBtn  = new QPushButton;
+    m_clearFileBtn  = new QPushButton;
+    m_localFileLabel = new QLabel;
+    m_localFileLabel->setStyleSheet("color:#80cbc4;font-size:10px;");
+    m_localFileLabel->setWordWrap(true);
+    m_localFileLabel->setVisible(false);
+    m_clearFileBtn->setFixedWidth(26);
+    m_clearFileBtn->setVisible(false);
+    m_clearFileBtn->setStyleSheet(
+        "QPushButton{background:#4a1a1a;color:#ef5350;border-radius:3px;font-weight:700;}"
+        "QPushButton:hover{background:#6b1a1a;}");
+    m_localFileBtn->setFixedWidth(110);
+
+    m_fmtLabel = new QLabel;
+    m_fmtLabel->setFixedWidth(110);
     m_formatCombo = new QComboBox;
-    m_formatCombo->addItem("🎵  Audio  (.m4a — default)", "audio");
-    m_formatCombo->addItem("🎬  Video  (.mp4 — default)", "video");
-    m_formatCombo->setFixedWidth(230);
+    m_formatCombo->setMinimumWidth(260);
 
-    m_noMusicChk = new QCheckBox(
-        "✨  No Music  —  AI vocal extraction (Demucs htdemucs_ft)  →  saves \"Title (no music).m4a\", deletes original");
+    m_noMusicChk = new QCheckBox;
     m_noMusicChk->setStyleSheet("color:#ce93d8;");
 
-    inputGrid->addWidget(urlLbl,        0, 0);
-    inputGrid->addWidget(m_urlEdit,     0, 1, 1, 3);
-    inputGrid->addWidget(m_pasteBtn,    0, 4);
-    inputGrid->addWidget(fmtLbl,        1, 0);
-    inputGrid->addWidget(m_formatCombo, 1, 1);
-    inputGrid->addWidget(m_noMusicChk,  2, 0, 1, 5);
-    root->addWidget(inputGroup);
+    m_extremeChk = new QCheckBox;
+    m_extremeChk->setStyleSheet("color:#ffb74d;");
+    m_extremeChk->setEnabled(false);
 
+    // Row 0: URL input
+    inputGrid->addWidget(m_urlLabel,   0, 0);
+    inputGrid->addWidget(m_urlEdit,    0, 1);
+    inputGrid->addWidget(m_pasteBtn,   0, 2);
+
+    // Row 1: Local file browse
+    auto *localRow = new QHBoxLayout;
+    localRow->addWidget(m_localFileBtn);
+    localRow->addWidget(m_clearFileBtn);
+    localRow->addWidget(m_localFileLabel, 1);
+    inputGrid->addWidget(new QLabel, 1, 0);
+    inputGrid->addLayout(localRow,     1, 1, 1, 2);
+
+    // Row 2: Format
+    inputGrid->addWidget(m_fmtLabel,      2, 0);
+    inputGrid->addWidget(m_formatCombo,   2, 1, 1, 2);
+
+    // Row 3: No Music
+    inputGrid->addWidget(m_noMusicChk, 3, 0, 1, 3);
+
+    // Row 4: Extreme
+    inputGrid->addWidget(m_extremeChk, 4, 0, 1, 3);
+
+    root->addWidget(m_inputGroup);
+
+    // ── Button row ────────────────────────────────────────────────────────────
     auto *btnRow = new QHBoxLayout;
-    m_startBtn = new QPushButton("▶   Start");
-    m_stopBtn  = new QPushButton("■   Stop");
-    auto *clearBtn = new QPushButton("Clear Log");
+    m_startBtn = new QPushButton;
+    m_stopBtn  = new QPushButton;
+    auto *clearLogBtn = new QPushButton;
+
     m_startBtn->setFixedHeight(36);
     m_stopBtn->setFixedHeight(36);
-    m_startBtn->setFixedWidth(130);
-    m_stopBtn->setFixedWidth(100);
-    clearBtn->setFixedWidth(90);
+    m_startBtn->setFixedWidth(140);
+    m_stopBtn->setFixedWidth(110);
+    clearLogBtn->setFixedWidth(96);
+
     m_startBtn->setStyleSheet(
         "QPushButton{background:#1a6b4a;color:#fff;font-weight:700;border-radius:4px;}"
         "QPushButton:hover{background:#25905f;}"
@@ -558,10 +846,11 @@ void MainWindow::buildUi()
         "QPushButton:hover{background:#902525;}"
         "QPushButton:disabled{background:#333;color:#666;}");
     m_stopBtn->setEnabled(false);
+
     btnRow->addWidget(m_startBtn);
     btnRow->addWidget(m_stopBtn);
     btnRow->addStretch();
-    btnRow->addWidget(clearBtn);
+    btnRow->addWidget(clearLogBtn);
     root->addLayout(btnRow);
 
     m_progress = new QProgressBar;
@@ -573,42 +862,96 @@ void MainWindow::buildUi()
         "QProgressBar::chunk{background:#80cbc4;}");
     root->addWidget(m_progress);
 
-    auto *logGroup = new QGroupBox("Process Log");
-    auto *logLayout = new QVBoxLayout(logGroup);
+    // ── Log ───────────────────────────────────────────────────────────────────
+    m_logGroup = new QGroupBox;
+    auto *logLayout = new QVBoxLayout(m_logGroup);
     logLayout->setContentsMargins(4, 4, 4, 4);
     m_log = new QTextEdit;
     m_log->setReadOnly(true);
     m_log->setFont(QFont("Monospace", 9));
-    m_log->document()->setMaximumBlockCount(2000);
-    m_log->setStyleSheet(
-        "QTextEdit{background:#0e0e10;color:#ccc;border:1px solid #2a2a30;"
-        "border-radius:4px;padding:4px;}");
+    m_log->document()->setMaximumBlockCount(3000);
     logLayout->addWidget(m_log);
-    root->addWidget(logGroup, 1);
+    root->addWidget(m_logGroup, 1);
 
     statusBar()->showMessage("Ready");
 
-    connect(m_pasteBtn,    &QPushButton::clicked, this, &MainWindow::onPaste);
-    connect(m_startBtn,    &QPushButton::clicked, this, &MainWindow::onStart);
-    connect(m_stopBtn,     &QPushButton::clicked, this, &MainWindow::onStop);
-    connect(m_settingsBtn, &QPushButton::clicked, this, &MainWindow::onOpenSettings);
-    connect(m_setupBtn,    &QPushButton::clicked, this, &MainWindow::onSetupDeps);
-    connect(clearBtn,      &QPushButton::clicked, m_log, &QTextEdit::clear);
+    // ── Connections ───────────────────────────────────────────────────────────
+    connect(m_pasteBtn,     &QPushButton::clicked, this, &MainWindow::onPaste);
+    connect(m_startBtn,     &QPushButton::clicked, this, &MainWindow::onStart);
+    connect(m_stopBtn,      &QPushButton::clicked, this, &MainWindow::onStop);
+    connect(m_settingsBtn,  &QPushButton::clicked, this, &MainWindow::onOpenSettings);
+    connect(m_setupBtn,     &QPushButton::clicked, this, &MainWindow::onSetupDeps);
+    connect(m_langBtn,      &QPushButton::clicked, this, &MainWindow::onToggleLanguage);
+    connect(m_themeBtn,     &QPushButton::clicked, this, &MainWindow::onToggleTheme);
+    connect(m_localFileBtn, &QPushButton::clicked, this, &MainWindow::onBrowseLocalFile);
+    connect(m_clearFileBtn, &QPushButton::clicked, this, &MainWindow::onClearLocalFile);
+    connect(clearLogBtn,    &QPushButton::clicked, m_log, &QTextEdit::clear);
 
     connect(m_formatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, [this](int idx) {
-        bool isAudio = (idx == 0);
-        m_noMusicChk->setEnabled(isAudio && !m_demucsPath.isEmpty());
-        if (!isAudio)
-            m_noMusicChk->setChecked(false);
+            this, [this](int) {
+        if (m_formatCombo->currentData().toString() == "separator") {
+            int cur = m_formatCombo->currentIndex();
+            m_formatCombo->setCurrentIndex(cur > 4 ? 5 : 3);
+            return;
+        }
+        updateCheckboxState();
+    });
+
+    connect(m_noMusicChk, &QCheckBox::stateChanged, this, [this]() {
+        updateCheckboxState();
     });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// populateFormatCombo  — fills items in current language, restores selection
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::populateFormatCombo()
+{
+    static const QStringList dataKeys = {
+        "audio_mp3", "audio_m4a", "audio_wav", "audio_flac",
+        "separator",
+        "video_best", "video_4k", "video_1080p", "video_720p", "video_480p"
+    };
+
+    QString savedKey = m_formatCombo->currentData().toString();
+    if (savedKey.isEmpty()) {
+        QSettings s;
+        savedKey = s.value("lastFormat", "audio_m4a").toString();
+    }
+
+    m_formatCombo->blockSignals(true);
+    m_formatCombo->clear();
+
+    const Strings &S = getStrings(m_arabic);
+    for (int i = 0; i < qMin(S.formatItems.size(), dataKeys.size()); ++i)
+        m_formatCombo->addItem(S.formatItems[i], dataKeys[i]);
+
+    auto *model = qobject_cast<QStandardItemModel *>(m_formatCombo->model());
+    if (model) {
+        QStandardItem *sepItem = model->item(4);
+        if (sepItem) {
+            sepItem->setEnabled(false);
+            sepItem->setFlags(sepItem->flags() & ~Qt::ItemIsSelectable);
+        }
+    }
+
+    m_formatCombo->blockSignals(false);
+
+    int idx = m_formatCombo->findData(savedKey);
+    m_formatCombo->setCurrentIndex(idx >= 0 ? idx : 1);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// checkDeps  — on startup and after setup
+// ─────────────────────────────────────────────────────────────────────────────
 
 void MainWindow::checkDeps()
 {
     appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
-    appendLog("  m4s d — Self-Diagnostic", "#80cbc4");
-    appendLog("  Data dir: " + appDataDir(), "#555");
+    const Strings &S = getStrings(m_arabic);
+    appendLog("  " + S.diagTitle, "#80cbc4");
+    appendLog(S.diagDataDir + appDataDir(), "#555");
 
     m_ytdlpPath  = findTool("yt-dlp");
     m_ffmpegPath = findTool("ffmpeg");
@@ -618,45 +961,162 @@ void MainWindow::checkDeps()
         if (!path.isEmpty())
             appendLog("  [OK]  " + name + "  →  " + path, "#66bb6a");
         else
-            appendLog("  [!!]  " + name + "  NOT FOUND — click \"Setup Tools\" to download.", "#ef5350");
+            appendLog("  [!!]  " + name + "  NOT FOUND — click \"Setup Tools\" to fix.", "#ef5350");
     };
 
     check("yt-dlp",  m_ytdlpPath);
     check("ffmpeg",  m_ffmpegPath);
     check("demucs",  m_demucsPath);
 
-    bool demucsAvail = !m_demucsPath.isEmpty();
-    m_noMusicChk->setEnabled(demucsAvail && m_formatCombo->currentIndex() == 0);
+    if (m_demucsPath.isEmpty())
+        appendLog("  [WW]  demucs not found — \"No Music\" disabled. Run install script.", "#ffa726");
 
-    if (!demucsAvail)
-        appendLog("  [WW]  demucs not found — \"No Music\" feature disabled. "
-                  "Run install_linux.sh or install_windows.ps1 to install.", "#ffa726");
+    m_startBtn->setEnabled(!m_ytdlpPath.isEmpty());
+    updateCheckboxState();
 
-    bool canDownload = !m_ytdlpPath.isEmpty();
-    m_startBtn->setEnabled(canDownload);
-
-    appendLog("  Ready — paste a URL and click Start.", "#80cbc4");
+    appendLog(S.diagReady, "#80cbc4");
     appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateCheckboxState
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::updateCheckboxState()
+{
+    bool demucsAvail = !m_demucsPath.isEmpty();
+    bool hasLocal    = !m_localFilePath.isEmpty();
+    bool videoUrl    = m_formatCombo->currentData().toString().startsWith("video_") && !hasLocal;
+
+    bool noMusicEnabled = demucsAvail && !videoUrl;
+    m_noMusicChk->setEnabled(noMusicEnabled);
+    if (!noMusicEnabled)
+        m_noMusicChk->setChecked(false);
+
+    bool extremeEnabled = noMusicEnabled && m_noMusicChk->isChecked();
+    m_extremeChk->setEnabled(extremeEnabled);
+    if (!extremeEnabled)
+        m_extremeChk->setChecked(false);
+
+    if (!m_startBtn->isEnabled() && !m_ytdlpPath.isEmpty() && hasLocal)
+        m_startBtn->setEnabled(true);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// applyLanguage  — sets all text from the string table
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::applyLanguage()
+{
+    const Strings &S = getStrings(m_arabic);
+
+    qApp->setLayoutDirection(m_arabic ? Qt::RightToLeft : Qt::LeftToRight);
+    setWindowTitle(S.windowTitle);
+
+    m_titleLabel->setText(S.titleHtml);
+    m_langBtn->setText(S.langBtnText);
+    m_setupBtn->setText(S.setupBtn);
+    m_settingsBtn->setText(S.settingsBtn);
+
+    m_inputGroup->setTitle(S.inputGroupTitle);
+    m_urlLabel->setText(S.urlLabel);
+    m_urlEdit->setPlaceholderText(S.urlPlaceholder);
+    m_pasteBtn->setText(S.pasteBtn);
+    m_localFileBtn->setText(S.browseFileBtn);
+    m_clearFileBtn->setText(S.clearFileBtn);
+    m_fmtLabel->setText(S.formatLabel);
+
+    m_noMusicChk->setText(S.noMusicLabel);
+    m_extremeChk->setText(S.extremeLabel);
+
+    m_startBtn->setText(S.startBtn);
+    m_stopBtn->setText(S.stopBtn);
+
+    m_logGroup->setTitle(S.logGroupTitle);
+
+    populateFormatCombo();
+    updateCheckboxState();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// applyTheme
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::applyTheme()
+{
+    m_themeBtn->setText(m_darkTheme ? "☀" : "🌙");
+
+    if (m_darkTheme) {
+        makeDarkPalette(*qApp);
+        m_log->setStyleSheet(
+            "QTextEdit{background:#0e0e10;color:#ccc;border:1px solid #2a2a30;"
+            "border-radius:4px;padding:4px;}");
+        m_progress->setStyleSheet(
+            "QProgressBar{border:none;background:#222;}"
+            "QProgressBar::chunk{background:#80cbc4;}");
+    } else {
+        makeLightPalette(*qApp);
+        m_log->setStyleSheet(
+            "QTextEdit{background:#ffffff;color:#222;border:1px solid #ccc;"
+            "border-radius:4px;padding:4px;}");
+        m_progress->setStyleSheet(
+            "QProgressBar{border:none;background:#ddd;}"
+            "QProgressBar::chunk{background:#007aff;}");
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility methods
+// ─────────────────────────────────────────────────────────────────────────────
 
 void MainWindow::appendLog(const QString &text, const QString &color)
 {
     QString escaped = text.toHtmlEscaped();
-    m_log->append(QString("<span style='color:%1;font-family:monospace;'>%2</span>")
-                      .arg(color, escaped));
+    m_log->append(
+        QString("<span style='color:%1;font-family:monospace;'>%2</span>")
+            .arg(color, escaped));
     m_log->verticalScrollBar()->setValue(m_log->verticalScrollBar()->maximum());
 }
 
 void MainWindow::setRunning(bool running)
 {
-    m_startBtn->setEnabled(!running && !m_ytdlpPath.isEmpty());
+    bool canStart = !running && (!m_ytdlpPath.isEmpty() || !m_localFilePath.isEmpty());
+    m_startBtn->setEnabled(canStart);
     m_stopBtn->setEnabled(running);
     m_urlEdit->setEnabled(!running);
+    m_localFileBtn->setEnabled(!running);
     m_formatCombo->setEnabled(!running);
-    m_noMusicChk->setEnabled(!running && !m_demucsPath.isEmpty()
-                              && m_formatCombo->currentIndex() == 0);
     m_progress->setVisible(running);
-    statusBar()->showMessage(running ? "Processing…" : "Ready");
+    const Strings &S = getStrings(m_arabic);
+    statusBar()->showMessage(running ? S.statusProcessing : S.statusReady);
+}
+
+void MainWindow::doCleanup()
+{
+    if (!m_pendingDelete.isEmpty() && QFile::exists(m_pendingDelete)) {
+        if (QFile::remove(m_pendingDelete))
+            appendLog("  [→] Original deleted (space saved): "
+                      + QFileInfo(m_pendingDelete).fileName(), "#aaa");
+    }
+
+    if (!m_extractedAudioFile.isEmpty() && QFile::exists(m_extractedAudioFile)) {
+        QFile::remove(m_extractedAudioFile);
+        appendLog("  [→] Temp extracted audio removed.", "#aaa");
+    }
+
+    QString base = !m_pendingDelete.isEmpty()
+        ? QFileInfo(m_pendingDelete).completeBaseName()
+        : (!m_extractedAudioFile.isEmpty()
+           ? QFileInfo(m_extractedAudioFile).completeBaseName()
+           : QString());
+
+    if (!base.isEmpty()) {
+        QString demucsFolder = outDir() + "/htdemucs_ft/" + base;
+        if (QDir(demucsFolder).exists()) {
+            QDir(demucsFolder).removeRecursively();
+            appendLog("  [→] Demucs temp folder removed.", "#aaa");
+        }
+    }
 }
 
 QString MainWindow::outDir() const
@@ -672,18 +1132,72 @@ QString MainWindow::currentDevice() const
     return s.value("device", "cpu").toString();
 }
 
+QString MainWindow::outputExtForAudio() const
+{
+    QString fmt = m_formatCombo->currentData().toString();
+    if (fmt == "audio_mp3")  return "mp3";
+    if (fmt == "audio_wav")  return "wav";
+    if (fmt == "audio_flac") return "flac";
+    return "m4a";
+}
+
+bool MainWindow::isAudioMode() const
+{
+    return !m_formatCombo->currentData().toString().startsWith("video_");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Slot implementations
+// ─────────────────────────────────────────────────────────────────────────────
+
 void MainWindow::onPaste()
 {
     QString text = QGuiApplication::clipboard()->text().trimmed();
-    if (!text.isEmpty())
+    if (!text.isEmpty()) {
         m_urlEdit->setText(text);
+        onClearLocalFile();
+    }
+}
+
+void MainWindow::onBrowseLocalFile()
+{
+    QString filter =
+        "Media Files (*.mp4 *.mkv *.avi *.mov *.webm *.flv *.wmv *.m4v "
+        "*.mp3 *.m4a *.wav *.flac *.ogg *.aac *.opus *.wma);;"
+        "All Files (*)";
+    QString file = QFileDialog::getOpenFileName(this, "Browse Local Media File",
+                                                outDir(), filter);
+    if (file.isEmpty()) return;
+
+    m_localFilePath = file;
+    m_urlEdit->clear();
+
+    const Strings &S = getStrings(m_arabic);
+    m_localFileLabel->setText(S.localFilePrefix + QFileInfo(file).fileName());
+    m_localFileLabel->setVisible(true);
+    m_clearFileBtn->setVisible(true);
+    m_startBtn->setEnabled(true);
+    updateCheckboxState();
+    appendLog("  [→] Local file: " + file, "#80cbc4");
+}
+
+void MainWindow::onClearLocalFile()
+{
+    m_localFilePath.clear();
+    m_localFileLabel->setVisible(false);
+    m_clearFileBtn->setVisible(false);
+    updateCheckboxState();
+    m_startBtn->setEnabled(!m_ytdlpPath.isEmpty());
 }
 
 void MainWindow::onOpenSettings()
 {
-    SettingsDialog dlg(this);
-    if (dlg.exec() == QDialog::Accepted)
-        appendLog("  [→] Settings saved. Output dir: " + dlg.downloadDir(), "#80cbc4");
+    SettingsDialog dlg(m_arabic, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        appendLog("  [→] Settings saved. Output: " + dlg.downloadDir(), "#80cbc4");
+        QSettings s;
+        s.sync();
+    }
 }
 
 void MainWindow::onSetupDeps()
@@ -694,9 +1208,10 @@ void MainWindow::onSetupDeps()
     m_progress->setVisible(true);
 
     auto *worker = new SetupWorker(this);
-    connect(worker, &SetupWorker::message,  this,
-            [this](const QString &t, const QString &c) { appendLog(t, c); });
-    connect(worker, &SetupWorker::finished, this, [this, worker](bool ok) {
+    connect(worker, &SetupWorker::message,
+            this, [this](const QString &t, const QString &c) { appendLog(t, c); });
+    connect(worker, &SetupWorker::finished,
+            this, [this, worker](bool ok) {
         worker->deleteLater();
         m_progress->setVisible(false);
         m_setupBtn->setEnabled(true);
@@ -704,11 +1219,35 @@ void MainWindow::onSetupDeps()
             appendLog("  [OK] Setup complete — re-running diagnostics…", "#66bb6a");
             checkDeps();
         } else {
-            appendLog("  [ERR] Setup encountered errors. See above.", "#ef5350");
+            appendLog("  [ERR] Setup had errors. See above.", "#ef5350");
         }
         appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
     });
     worker->run();
+}
+
+void MainWindow::onToggleLanguage()
+{
+    m_arabic = !m_arabic;
+    QSettings s;
+    s.setValue("arabic", m_arabic);
+    applyLanguage();
+    appendLog(m_arabic
+              ? "  [→] اللغة: عربي"
+              : "  [→] Language: English",
+              "#80cbc4");
+}
+
+void MainWindow::onToggleTheme()
+{
+    m_darkTheme = !m_darkTheme;
+    QSettings s;
+    s.setValue("darkTheme", m_darkTheme);
+    applyTheme();
+    appendLog(m_darkTheme
+              ? "  [→] Theme: Dark"
+              : "  [→] Theme: Light",
+              "#80cbc4");
 }
 
 void MainWindow::onStop()
@@ -723,51 +1262,93 @@ void MainWindow::onStop()
 
 void MainWindow::onStart()
 {
-    QString url = m_urlEdit->text().trimmed();
-    if (url.isEmpty()) {
-        QMessageBox::warning(this, "m4s d", "Please enter a URL.");
+    const Strings &S = getStrings(m_arabic);
+    bool hasLocal = !m_localFilePath.isEmpty();
+    bool hasUrl   = !m_urlEdit->text().trimmed().isEmpty();
+
+    if (!hasLocal && !hasUrl) {
+        QMessageBox::warning(this, "m4s d", S.msgNoInput);
         return;
     }
-    if (m_ytdlpPath.isEmpty()) {
-        QMessageBox::critical(this, "m4s d", "yt-dlp not found. Click \"Setup Tools\" first.");
+
+    if (!hasLocal && m_ytdlpPath.isEmpty()) {
+        QMessageBox::critical(this, "m4s d", S.msgNoYtdlp);
         return;
     }
 
     m_downloadedFile.clear();
+    m_extractedAudioFile.clear();
     m_pendingDelete.clear();
     m_pendingConvertOut.clear();
     m_cudaFailed = false;
 
     QDir().mkpath(outDir());
     setRunning(true);
-    startDownload();
+
+    QSettings s;
+    s.setValue("lastFormat", m_formatCombo->currentData().toString());
+
+    if (hasLocal)
+        startLocalProcess();
+    else
+        startDownload();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Step 1a — URL download via yt-dlp
+// ─────────────────────────────────────────────────────────────────────────────
 
 void MainWindow::startDownload()
 {
     QString url = m_urlEdit->text().trimmed();
-    bool isAudio = (m_formatCombo->currentIndex() == 0);
+    QString fmt = m_formatCombo->currentData().toString();
 
     appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
-    appendLog(QString("  Step 1 — yt-dlp  [%1]").arg(isAudio ? "audio → .m4a" : "video → .mp4"), "#80cbc4");
+    appendLog("  Step 1 — yt-dlp  [" + fmt + "]", "#80cbc4");
     appendLog("  URL: " + url, "#777");
 
     QStringList args;
-    args << "--no-playlist" << "--no-warnings";
+    args << "--no-playlist" << "--no-warnings" << "--newline";
 
-    if (isAudio) {
-        args << "-f"  << "bestaudio[ext=m4a]/bestaudio/best"
-             << "-x"
-             << "--audio-format" << "m4a"
-             << "--audio-quality" << "0";
+    if (fmt == "audio_mp3") {
+        args << "-f" << "bestaudio"
+             << "-x" << "--audio-format" << "mp3" << "--audio-quality" << "0";
+    } else if (fmt == "audio_m4a") {
+        args << "-f" << "bestaudio[ext=m4a]/bestaudio/best"
+             << "-x" << "--audio-format" << "m4a" << "--audio-quality" << "0";
+    } else if (fmt == "audio_wav") {
+        args << "-f" << "bestaudio"
+             << "-x" << "--audio-format" << "wav";
+    } else if (fmt == "audio_flac") {
+        args << "-f" << "bestaudio"
+             << "-x" << "--audio-format" << "flac" << "--audio-quality" << "0";
+    } else if (fmt == "video_4k") {
+        args << "-f"
+             << "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/"
+                "bestvideo[height<=2160]+bestaudio/best"
+             << "--merge-output-format" << "mp4";
+    } else if (fmt == "video_1080p") {
+        args << "-f"
+             << "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/"
+                "bestvideo[height<=1080]+bestaudio/best"
+             << "--merge-output-format" << "mp4";
+    } else if (fmt == "video_720p") {
+        args << "-f"
+             << "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/"
+                "bestvideo[height<=720]+bestaudio/best"
+             << "--merge-output-format" << "mp4";
+    } else if (fmt == "video_480p") {
+        args << "-f"
+             << "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/"
+                "bestvideo[height<=480]+bestaudio/best"
+             << "--merge-output-format" << "mp4";
     } else {
-        args << "-f"  << "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+        args << "-f"
+             << "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
              << "--merge-output-format" << "mp4";
     }
 
-    args << "--newline"
-         << "-o" << (outDir() + "/%(title)s.%(ext)s")
-         << url;
+    args << "-o" << (outDir() + "/%(title)s.%(ext)s") << url;
 
     appendLog("  > yt-dlp " + args.join(" "), "#444");
 
@@ -820,7 +1401,7 @@ void MainWindow::onDownloadFinished(int code, QProcess::ExitStatus st)
     appendLog("  [OK] Download complete.", "#66bb6a");
 
     if (m_downloadedFile.isEmpty()) {
-        QDirIterator it(outDir(), QDir::Files, QDirIterator::NoIteratorFlags);
+        QDirIterator it(outDir(), QDir::Files);
         QDateTime newest;
         while (it.hasNext()) {
             it.next();
@@ -835,7 +1416,7 @@ void MainWindow::onDownloadFinished(int code, QProcess::ExitStatus st)
     appendLog("  [→] File: " + m_downloadedFile, "#aaa");
 
     bool noMusic = m_noMusicChk->isChecked() && !m_demucsPath.isEmpty()
-                   && !m_downloadedFile.isEmpty();
+                   && !m_downloadedFile.isEmpty() && isAudioMode();
 
     if (noMusic)
         startDemucs(m_downloadedFile);
@@ -843,31 +1424,136 @@ void MainWindow::onDownloadFinished(int code, QProcess::ExitStatus st)
         finishPipeline();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Step 1b — Local file processing
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::startLocalProcess()
+{
+    appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
+    appendLog("  Mode: Local File Processing", "#80cbc4");
+    appendLog("  File: " + m_localFilePath, "#777");
+
+    static const QStringList videoExts = {
+        "mp4", "mkv", "avi", "mov", "webm", "flv", "wmv", "m4v", "ts", "mpg", "mpeg"
+    };
+
+    QString ext = QFileInfo(m_localFilePath).suffix().toLower();
+    bool isVideo = videoExts.contains(ext);
+
+    if (isVideo) {
+        appendLog("  [→] Video file detected — extracting audio stream…", "#80cbc4");
+        startExtractAudio(m_localFilePath);
+    } else {
+        m_downloadedFile = m_localFilePath;
+        bool noMusic = m_noMusicChk->isChecked() && !m_demucsPath.isEmpty();
+        if (noMusic)
+            startDemucs(m_downloadedFile);
+        else
+            startDirectConvert(m_downloadedFile);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Step 1c — Extract audio from local video (ffmpeg)
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::startExtractAudio(const QString &videoFile)
+{
+    if (m_ffmpegPath.isEmpty()) {
+        appendLog("  [ERR] ffmpeg not found — cannot extract audio from video.", "#ef5350");
+        setRunning(false);
+        appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
+        return;
+    }
+
+    appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
+    appendLog("  Step — ffmpeg Audio Extraction", "#80cbc4");
+
+    QFileInfo fi(videoFile);
+    QString audioOut = outDir() + "/" + fi.completeBaseName() + "_extracted.wav";
+    m_extractedAudioFile = audioOut;
+
+    QStringList args;
+    args << "-y" << "-i" << videoFile
+         << "-vn" << "-q:a" << "0" << "-map" << "a"
+         << audioOut;
+
+    appendLog("  > ffmpeg -i [video] -vn -q:a 0 -map a [audio.wav]", "#444");
+
+    m_proc = new QProcess(this);
+    m_proc->setProcessChannelMode(QProcess::MergedChannels);
+    connect(m_proc, &QProcess::readyRead,    this, &MainWindow::onExtractAudioData);
+    connect(m_proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &MainWindow::onExtractAudioFinished);
+    m_proc->start(m_ffmpegPath, args);
+}
+
+void MainWindow::onExtractAudioData()
+{
+    QString out = QString::fromLocal8Bit(m_proc->readAll());
+    for (const QString &ln : out.split('\n', Qt::SkipEmptyParts)) {
+        QString t = ln.trimmed();
+        if (!t.isEmpty() && (t.startsWith("size=") || t.startsWith("frame=")))
+            appendLog("  " + t, "#80cbc4");
+    }
+}
+
+void MainWindow::onExtractAudioFinished(int code, QProcess::ExitStatus st)
+{
+    m_proc->deleteLater();
+    m_proc = nullptr;
+
+    if (code != 0 || st == QProcess::CrashExit) {
+        appendLog("  [ERR] Audio extraction failed (exit " + QString::number(code) + ")", "#ef5350");
+        setRunning(false);
+        appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
+        return;
+    }
+
+    appendLog("  [OK] Audio extracted: " + QFileInfo(m_extractedAudioFile).fileName(), "#66bb6a");
+    m_downloadedFile = m_extractedAudioFile;
+
+    bool noMusic = m_noMusicChk->isChecked() && !m_demucsPath.isEmpty();
+    if (noMusic)
+        startDemucs(m_extractedAudioFile);
+    else
+        startDirectConvert(m_extractedAudioFile);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Step 2 — Demucs vocal separation
+// ─────────────────────────────────────────────────────────────────────────────
+
 void MainWindow::startDemucs(const QString &audioFile)
 {
     appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
-    appendLog("  Step 2 — Demucs  (htdemucs_ft · shifts=2 · two-stems=vocals)", "#ce93d8");
+
+    int shifts = m_extremeChk->isChecked() ? 4 : 2;
+    QString overlapArg = m_extremeChk->isChecked() ? "--overlap=0.25" : "--overlap=0.1";
+
+    appendLog(QString("  Step 2 — Demucs  (htdemucs_ft · shifts=%1 · two-stems=vocals)").arg(shifts),
+              "#ce93d8");
     appendLog("  Input : " + audioFile, "#777");
 
     QString device = currentDevice();
-    if (m_cudaFailed)
-        device = "cpu";
+    if (m_cudaFailed) device = "cpu";
     appendLog("  Device: " + device.toUpper(), "#777");
 
     QStringList args;
-    args << "-n"              << "htdemucs_ft"
+    args << "-n"               << "htdemucs_ft"
          << "--two-stems=vocals"
-         << "--shifts=2"
-         << "-d"              << device
-         << "-o"              << outDir()
+         << QString("--shifts=%1").arg(shifts)
+         << overlapArg
+         << "-d"               << device
+         << "-o"               << outDir()
          << audioFile;
 
     appendLog("  > demucs " + args.join(" "), "#444");
 
     m_proc = new QProcess(this);
     m_proc->setProcessChannelMode(QProcess::MergedChannels);
-    connect(m_proc, &QProcess::readyRead,
-            this, &MainWindow::onDemucsData);
+    connect(m_proc, &QProcess::readyRead,    this, &MainWindow::onDemucsData);
     connect(m_proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &MainWindow::onDemucsFinished);
     m_proc->start(m_demucsPath, args);
@@ -908,7 +1594,8 @@ void MainWindow::onDemucsFinished(int code, QProcess::ExitStatus st)
     QFileInfo fi(inputFile);
     QString base      = fi.completeBaseName();
     QString vocalsWav = outDir() + "/htdemucs_ft/" + base + "/vocals.wav";
-    QString noMusicM4a = outDir() + "/" + base + " (no music).m4a";
+    QString ext       = outputExtForAudio();
+    QString noMusicOut = outDir() + "/" + base + " (no music)." + ext;
 
     if (!QFile::exists(vocalsWav)) {
         appendLog("  [ERR] Expected vocals.wav not found: " + vocalsWav, "#ef5350");
@@ -918,16 +1605,37 @@ void MainWindow::onDemucsFinished(int code, QProcess::ExitStatus st)
     }
 
     m_pendingDelete     = m_downloadedFile;
-    m_pendingConvertOut = noMusicM4a;
+    m_pendingConvertOut = noMusicOut;
 
-    startConvert(vocalsWav, noMusicM4a);
+    startConvert(vocalsWav, noMusicOut);
 }
 
-void MainWindow::startConvert(const QString &vocalsWav, const QString &outM4a)
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Step 3a — Convert vocals.wav → selected format
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::startConvert(const QString &inputAudio, const QString &outputFile)
 {
     appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
-    appendLog("  Step 3 — ffmpeg  (vocals.wav → .m4a)", "#80cbc4");
-    appendLog("  Output: " + QFileInfo(outM4a).fileName(), "#aaa");
+
+    QString outExt = QFileInfo(outputFile).suffix().toLower();
+
+    if (outExt == "wav") {
+        appendLog("  Step 3 — WAV copy (no re-encoding needed)", "#80cbc4");
+        appendLog("  Output: " + QFileInfo(outputFile).fileName(), "#aaa");
+        bool ok = QFile::copy(inputAudio, outputFile);
+        if (ok) {
+            appendLog("  [OK] Saved: " + outputFile, "#66bb6a");
+        } else {
+            appendLog("  [ERR] Failed to copy WAV.", "#ef5350");
+        }
+        doCleanup();
+        finishPipeline();
+        return;
+    }
+
+    appendLog("  Step 3 — ffmpeg  (vocals.wav → ." + outExt + ")", "#80cbc4");
+    appendLog("  Output: " + QFileInfo(outputFile).fileName(), "#aaa");
 
     if (m_ffmpegPath.isEmpty()) {
         appendLog("  [ERR] ffmpeg not found — cannot convert. Install ffmpeg.", "#ef5350");
@@ -937,14 +1645,17 @@ void MainWindow::startConvert(const QString &vocalsWav, const QString &outM4a)
     }
 
     QStringList args;
-    args << "-y" << "-i" << vocalsWav
-         << "-c:a" << "aac" << "-b:a" << "256k"
-         << outM4a;
+    args << "-y" << "-i" << inputAudio;
+
+    if (outExt == "mp3")       args << "-c:a" << "libmp3lame" << "-q:a" << "0";
+    else if (outExt == "flac") args << "-c:a" << "flac";
+    else                       args << "-c:a" << "aac" << "-b:a" << "256k";
+
+    args << outputFile;
 
     m_proc = new QProcess(this);
     m_proc->setProcessChannelMode(QProcess::MergedChannels);
-    connect(m_proc, &QProcess::readyRead,
-            this, &MainWindow::onConvertData);
+    connect(m_proc, &QProcess::readyRead,    this, &MainWindow::onConvertData);
     connect(m_proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &MainWindow::onConvertFinished);
     m_proc->start(m_ffmpegPath, args);
@@ -973,29 +1684,98 @@ void MainWindow::onConvertFinished(int code, QProcess::ExitStatus st)
     }
 
     appendLog("  [OK] Saved: " + m_pendingConvertOut, "#66bb6a");
-
-    if (!m_pendingDelete.isEmpty() && QFile::exists(m_pendingDelete)) {
-        if (QFile::remove(m_pendingDelete))
-            appendLog("  [→] Original deleted (space saved): " + m_pendingDelete, "#aaa");
-    }
-
-    QFileInfo fi(m_pendingDelete);
-    QString demucsFolder = outDir() + "/htdemucs_ft/" + fi.completeBaseName();
-    if (QDir(demucsFolder).exists()) {
-        QDir(demucsFolder).removeRecursively();
-        appendLog("  [→] Demucs temp folder removed.", "#aaa");
-    }
-
+    doCleanup();
     finishPipeline();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Step 3b — Direct format conversion (no demucs path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+void MainWindow::startDirectConvert(const QString &inputFile)
+{
+    QFileInfo fi(inputFile);
+    QString outExt = outputExtForAudio();
+    QString outputFile = outDir() + "/" + fi.completeBaseName() + "." + outExt;
+
+    appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
+    appendLog("  Step — Format Conversion  (→ ." + outExt + ")", "#80cbc4");
+
+    if (fi.suffix().toLower() == outExt
+        && fi.absoluteFilePath() == QFileInfo(outputFile).absoluteFilePath()) {
+        appendLog("  [OK] File already in target format at output dir.", "#66bb6a");
+        if (!m_extractedAudioFile.isEmpty() && QFile::exists(m_extractedAudioFile))
+            QFile::remove(m_extractedAudioFile);
+        finishPipeline();
+        return;
+    }
+
+    if (fi.suffix().toLower() == outExt) {
+        QFile::copy(inputFile, outputFile);
+        appendLog("  [OK] Copied → " + outputFile, "#66bb6a");
+        if (!m_extractedAudioFile.isEmpty() && QFile::exists(m_extractedAudioFile)
+            && m_extractedAudioFile != inputFile)
+            QFile::remove(m_extractedAudioFile);
+        m_pendingConvertOut = outputFile;
+        finishPipeline();
+        return;
+    }
+
+    if (m_ffmpegPath.isEmpty()) {
+        appendLog("  [ERR] ffmpeg not found — cannot convert format.", "#ef5350");
+        appendLog("        Install ffmpeg or use a matching format.", "#ff8a65");
+        setRunning(false);
+        return;
+    }
+
+    QStringList args;
+    args << "-y" << "-i" << inputFile;
+    if (outExt == "mp3")       args << "-c:a" << "libmp3lame" << "-q:a" << "0";
+    else if (outExt == "flac") args << "-c:a" << "flac";
+    else if (outExt == "wav")  args << "-c:a" << "pcm_s16le";
+    else                       args << "-c:a" << "aac" << "-b:a" << "256k";
+    args << outputFile;
+
+    m_pendingConvertOut = outputFile;
+
+    appendLog("  > ffmpeg -i [input] → " + outputFile, "#444");
+
+    m_proc = new QProcess(this);
+    m_proc->setProcessChannelMode(QProcess::MergedChannels);
+    connect(m_proc, &QProcess::readyRead, this, &MainWindow::onConvertData);
+    connect(m_proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this](int code, QProcess::ExitStatus st) {
+        m_proc->deleteLater();
+        m_proc = nullptr;
+        if (code != 0 || st == QProcess::CrashExit) {
+            appendLog("  [ERR] Format conversion failed.", "#ef5350");
+            setRunning(false);
+            appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
+            return;
+        }
+        appendLog("  [OK] Saved: " + m_pendingConvertOut, "#66bb6a");
+        if (!m_extractedAudioFile.isEmpty() && QFile::exists(m_extractedAudioFile))
+            QFile::remove(m_extractedAudioFile);
+        finishPipeline();
+    });
+    m_proc->start(m_ffmpegPath, args);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline end
+// ─────────────────────────────────────────────────────────────────────────────
+
 void MainWindow::finishPipeline()
 {
+    const Strings &S = getStrings(m_arabic);
     appendLog("  ✓  Done.", "#66bb6a");
     setRunning(false);
     appendLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#444");
-    statusBar()->showMessage("Done  —  " + QFileInfo(
-        m_pendingConvertOut.isEmpty() ? m_downloadedFile : m_pendingConvertOut).fileName());
+
+    QString finalFile = m_pendingConvertOut.isEmpty()
+                        ? m_downloadedFile
+                        : m_pendingConvertOut;
+    statusBar()->showMessage(S.statusDone + "  —  " + QFileInfo(finalFile).fileName());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1006,10 +1786,14 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName("m4s_d");
-    app.setApplicationVersion("1.0.0");
+    app.setApplicationVersion("2.0.0");
     app.setOrganizationName("m4s");
     app.setOrganizationDomain("github.com/mahmoudelsheikh7/M4S_D");
-    makeDarkPalette(app);
+
+    QSettings s;
+    bool darkTheme = s.value("darkTheme", true).toBool();
+    if (darkTheme) makeDarkPalette(app);
+    else           makeLightPalette(app);
 
     MainWindow w;
     w.show();
