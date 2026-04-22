@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>io.github.mahmoudelsheikh7.m4s_d</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>MIT</project_license>
+
+    <name>m4s d</name>
+    <summary>Universal Downloader &amp; AI Vocal Extractor</summary>
+
+    <description>
+        <p>
+            m4s d is a production-grade C++17 / Qt6 desktop application combining two powerful pipelines in a single, non-blocking GUI.
+        </p>
+        <p>
+            Download from over 1,000 websites using yt-dlp, and isolate vocals with zero music bleed using Meta's htdemucs_ft AI. It features full offline capability, bilingual Arabic/English UI, and seamless local file processing.
+        </p>
+    </description>
+
+    <launchable type="desktop-id">io.github.mahmoudelsheikh7.m4s_d.desktop</launchable>
+
+    <url type="homepage">https://github.com/mahmoudelsheikh7/M4S_D</url>
+    <url type="bugtracker">https://github.com/mahmoudelsheikh7/M4S_D/issues</url>
+    <url type="donation">https://tronscan.org/#/address/TLTRj89qEp1oPcEQjAsqiDWutd1ezd4W4y</url>
+
+    <screenshots>
+        <screenshot type="default">
+            <caption>Main user interface of m4s d</caption>
+            <image>https://raw.githubusercontent.com/mahmoudelsheikh7/M4S_D/main/screenshot.png</image>
+        </screenshot>
+    </screenshots>
+
+    <releases>
+        <release version="2.0.0" date="2026-04-22" />
+    </releases>
+
+    <developer id="io.github.mahmoudelsheikh7">
+        <name>Mahmoud El Sheikh</name>
+    </developer>
+
+    <content_rating type="oars-1.1" />
+</component>

@@ -219,7 +219,7 @@ print_success() {
   ║            auto-deletes original + demucs temp files         ║
   ║                                                              ║
   ║  Local Files: browse any video/audio file for processing     ║
-  ║  Bilingual:   Arabic / English toggle (⚙ in toolbar)         ║
+  ║  Bilingual:   Arabic / English toggle                        ║
   ║  Themes:      Dark / Light mode toggle                       ║
   ║                                                              ║
   ║  NOTE: If demucs is not found, add to PATH:                  ║
@@ -248,7 +248,7 @@ main() {
   local SCRIPT_DIR
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-  build_app     "$SCRIPT_DIR"
+  build_app      "$SCRIPT_DIR"
   install_binary "$SCRIPT_DIR"
   create_desktop_entry
   print_success

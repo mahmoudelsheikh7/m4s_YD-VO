@@ -4,6 +4,8 @@ project(m4s_d VERSION 2.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
@@ -25,12 +27,18 @@ set_target_properties(m4s_d PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+if(WIN32)
+    set_target_properties(m4s_d PROPERTIES
+        LINK_FLAGS "/SUBSYSTEM:WINDOWS"
+    )
+endif()
+
 if(UNIX AND NOT APPLE)
     include(GNUInstallDirs)
     install(TARGETS m4s_d DESTINATION ${CMAKE_INSTALL_BINDIR})
 
     configure_file(
-        "${CMAKE_SOURCE_DIR}/m4s_d.desktop.in"
+        "${CMAKE_SOURCE_DIR}/m4s_d_desktop.in"
         "${CMAKE_BINARY_DIR}/m4s_d.desktop"
         @ONLY
     )
@@ -38,4 +46,12 @@ if(UNIX AND NOT APPLE)
         FILES "${CMAKE_BINARY_DIR}/m4s_d.desktop"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
     )
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(MSVC)
+        target_compile_options(m4s_d PRIVATE /O2 /W3)
+    else()
+        target_compile_options(m4s_d PRIVATE -O2 -Wall -Wextra)
+    endif()
 endif()
